@@ -5,10 +5,13 @@ then dispatches to the appropriate handler module (tools.files, tools.system, et
 Includes a fast-path keyword router that bypasses the LLM for obvious intents.
 """
 
+import logging
 import re
 
 from nexus.llm.loader import generate
 from nexus.utils import extract_filepath
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Fast-path keyword routing — bypass LLM for obvious intents
@@ -681,8 +684,10 @@ def route(user_input):
         try:
             from nexus.agent import memory
             memory_context = memory.get_relevant_memories(question)
-        except (ImportError, Exception):
-            pass
+        except Exception:
+            # Memory lookup is a best-effort enhancement — QA must still work
+            # if it fails, but the failure shouldn't vanish silently.
+            logger.debug("Memory lookup failed for QA; continuing without it", exc_info=True)
 
         # Use generate() directly with history for QA
         prompt = memory_context + "Answer the following question in 2-3 sentences. Be brief and direct:\n\n" + question

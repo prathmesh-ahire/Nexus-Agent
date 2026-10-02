@@ -40,7 +40,10 @@ MODEL_NAME = "Qwen 2.5 3B Instruct (Q4_K_M GGUF)"
 # Global state
 # ---------------------------------------------------------------------------
 model = None
-_settings_cache = None  # cached after first load_settings() call
+# llama-cpp-python's Llama instance is not safe to call concurrently -- this
+# guards every create_chat_completion() call so two overlapping requests
+# (e.g. the UI and a background task) can't hit the model at the same time.
+_inference_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -50,11 +53,11 @@ def load_settings():
     """
     Read config/settings.json and return a dict of settings.
     Falls back to sensible defaults if the file is missing or malformed.
-    Results are cached in memory after the first call.
+
+    Reads the file fresh on every call (not cached) so that edits made
+    through the Settings "Save" action take effect immediately, without
+    requiring a restart.
     """
-    global _settings_cache
-    if _settings_cache is not None:
-        return _settings_cache
     defaults = {
         "model_path": DEFAULT_MODEL_PATH,
         "max_tokens": 512,
@@ -63,8 +66,7 @@ def load_settings():
     }
 
     if not os.path.isfile(SETTINGS_PATH):
-        _settings_cache = defaults
-        return _settings_cache
+        return defaults
 
     try:
         with open(SETTINGS_PATH, encoding="utf-8") as f:
@@ -79,13 +81,11 @@ def load_settings():
         if not os.path.isabs(data["model_path"]):
             data["model_path"] = os.path.join(PROJECT_ROOT, data["model_path"])
 
-        _settings_cache = data
-        return _settings_cache
+        return data
 
     except (OSError, json.JSONDecodeError) as e:
         print(f"[WARNING] Could not parse settings.json ({e}). Using defaults.")
-        _settings_cache = defaults
-        return _settings_cache
+        return defaults
 
 
 # ---------------------------------------------------------------------------
@@ -279,11 +279,12 @@ def generate(prompt, max_tokens=None, system_prompt=None, conversation_history=N
 
     def _run_inference():
         try:
-            response = model.create_chat_completion(
-                messages=messages,
-                max_tokens=max_tokens,
-                stop=["\n\n\n", "<|im_end|>"],  # Stop early instead of generating until limit
-            )
+            with _inference_lock:
+                response = model.create_chat_completion(
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    stop=["\n\n\n", "<|im_end|>"],  # Stop early instead of generating until limit
+                )
             result_container[0] = response["choices"][0]["message"]["content"]
         except Exception as e:
             error_container[0] = e

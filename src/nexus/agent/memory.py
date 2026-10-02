@@ -8,8 +8,10 @@ Originally split across memory.py (Phase 19) and memory.py (Phase 28),
 now unified into a single module for cleaner organisation.
 """
 
+import contextlib
 import json
 import os
+import shutil
 from datetime import datetime
 
 from nexus import config
@@ -181,14 +183,27 @@ def save_memory(data):
     """
     Write the memory dict to user_memory.json.
 
+    Writes to a temp file first and atomically renames it into place
+    (os.replace), so a crash or power loss mid-write can't leave the
+    memory file half-written. Keeps one rotating .bak of the previous
+    version before each overwrite.
+
     Args:
         data: Dict with at least a 'facts' key containing a list.
     """
     try:
         # Ensure the config directory exists
         os.makedirs(os.path.dirname(MEMORY_FILE), exist_ok=True)
-        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+
+        tmp_path = MEMORY_FILE + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+
+        if os.path.isfile(MEMORY_FILE):
+            with contextlib.suppress(OSError):
+                shutil.copy2(MEMORY_FILE, MEMORY_FILE + ".bak")
+
+        os.replace(tmp_path, MEMORY_FILE)
     except OSError as e:
         print(f"Warning: Could not save memory file: {e}")
 

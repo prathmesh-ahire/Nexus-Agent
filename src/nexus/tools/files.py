@@ -311,6 +311,9 @@ def rename_file(old_path, new_name):
     directory = os.path.dirname(old_path)
     new_path = os.path.join(directory, new_name)
 
+    if not is_allowed(new_path):
+        return "Permission denied for the destination path."
+
     if os.path.exists(new_path):
         return f"Cannot rename: a file named '{new_name}' already exists in that folder."
 

@@ -298,10 +298,12 @@ def handle_task(args):
 
     lower = args.lower().strip()
 
-    # Try to match task keywords (check longer phrases first)
+    # Try to match task keywords (check longer phrases first).
+    # Matched on a word boundary, not a plain prefix -- a plain startswith()
+    # let "listen to music" match the keyword "list" (list_files).
     matched_task = None
     for keyword in sorted(_TASK_KEYWORDS.keys(), key=len, reverse=True):
-        if lower.startswith(keyword) or lower == keyword:
+        if re.match(rf"{re.escape(keyword)}\b", lower):
             matched_task = _TASK_KEYWORDS[keyword]
             # Extract remaining args after the keyword
             remaining = args[len(keyword):].strip()

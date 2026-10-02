@@ -733,11 +733,10 @@ class QuickOpenApp:
             pkg_status.config(text="Installing... please wait", fg=t["thinking_ylw"])
             def _do_install():
                 import subprocess
-                req_path = str(config.REQUIREMENTS_FILE)
-                req_path = os.path.abspath(req_path)
                 try:
                     result = subprocess.run(
-                        [sys.executable, "-m", "pip", "install", "-r", req_path],
+                        [sys.executable, "-m", "pip", "install", "-e", ".[all]"],
+                        cwd=str(config.PROJECT_ROOT),
                         capture_output=True, text=True, timeout=120
                     )
                     if result.returncode == 0:

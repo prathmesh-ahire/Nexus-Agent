@@ -31,7 +31,6 @@ API_KEYS_FILE: Path = CONFIG_DIR / "api_keys.json"
 API_KEYS_TEMPLATE: Path = CONFIG_DIR / "api_keys.template.json"
 MEMORY_FILE: Path = CONFIG_DIR / "user_memory.json"
 QUEUE_FILE: Path = PROJECT_ROOT / "tasks_queue.json"
-REQUIREMENTS_FILE: Path = PROJECT_ROOT / "requirements.txt"
 
 DEFAULT_MODEL_NAME = "qwen2.5-3b-instruct-q4_k_m.gguf"
 

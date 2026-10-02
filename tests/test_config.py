@@ -25,7 +25,7 @@ def test_project_root_contains_the_package():
     [
         "CONFIG_DIR", "MODEL_DIR", "DATASETS_DIR", "LORA_WEIGHTS_DIR",
         "RAG_INDEX_DIR", "SETTINGS_FILE", "PERMISSIONS_FILE", "API_KEYS_FILE",
-        "MEMORY_FILE", "QUEUE_FILE", "REQUIREMENTS_FILE",
+        "MEMORY_FILE", "QUEUE_FILE",
     ],
 )
 def test_derived_paths_live_under_project_root(path_name):

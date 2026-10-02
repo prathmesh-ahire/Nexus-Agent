@@ -445,7 +445,6 @@ class QuickOpenApp:
             ("Settings", self._open_settings),
             ("Reset Model", self._reset_model),
             ("Train on Dataset", self._train_dataset),
-            ("Manage Folders", self._manage_folders),
             None,  # Separator
             ("Clear Chat", self._clear_chat),
             None,  # Separator
@@ -729,6 +728,12 @@ class QuickOpenApp:
                               bg=t["bg_dark"], fg=t["fg_dim"])
         pkg_status.pack(anchor="w")
 
+        def _set_pkg_status(text, fg):
+            # Settings may have been closed while the install thread was
+            # still running -- guard against updating a destroyed widget.
+            if win.winfo_exists() and pkg_status.winfo_exists():
+                pkg_status.config(text=text, fg=fg)
+
         def install_missing():
             pkg_status.config(text="Installing... please wait", fg=t["thinking_ylw"])
             def _do_install():
@@ -740,11 +745,11 @@ class QuickOpenApp:
                         capture_output=True, text=True, timeout=120
                     )
                     if result.returncode == 0:
-                        win.after(0, pkg_status.config, {"text": "All packages installed!", "fg": t["success_grn"]})
+                        win.after(0, _set_pkg_status, "All packages installed!", t["success_grn"])
                     else:
-                        win.after(0, pkg_status.config, {"text": f"Error: {result.stderr[:100]}", "fg": t["error_red"]})
+                        win.after(0, _set_pkg_status, f"Error: {result.stderr[:100]}", t["error_red"])
                 except Exception as e:
-                    win.after(0, pkg_status.config, {"text": f"Error: {e}", "fg": t["error_red"]})
+                    win.after(0, _set_pkg_status, f"Error: {e}", t["error_red"])
             threading.Thread(target=_do_install, daemon=True).start()
 
         inst_btn = tk.Button(pkg_frame, text="Install Missing Packages", font=FONT_PILL,
@@ -757,14 +762,16 @@ class QuickOpenApp:
         bottom.pack(fill=tk.X, padx=12, pady=(12, 8))
 
         def save_all():
+            errors = []
+
             # Save API key
             key_val = api_entry.get().strip()
             if key_val:
                 try:
                     from nexus.tools import search
                     search.save_api_key("gemini_api_key", key_val)
-                except ImportError:
-                    pass
+                except ImportError as e:
+                    errors.append(f"API key not saved: {e}")
 
             # Save model config
             for field, ent in model_entries.items():
@@ -774,8 +781,8 @@ class QuickOpenApp:
             try:
                 with open(settings_path, "w", encoding="utf-8") as f:
                     _json.dump(settings_data, f, indent=4, ensure_ascii=False)
-            except OSError:
-                pass
+            except OSError as e:
+                errors.append(f"Model settings not saved: {e}")
 
             # Save folder permissions
             paths = list(folder_listbox.get(0, tk.END))
@@ -785,11 +792,17 @@ class QuickOpenApp:
                 import json as _j
                 with open(permissions.CONFIG_PATH, "w", encoding="utf-8") as f:
                     _j.dump(perm_data, f, indent=2)
-            except (ImportError, OSError):
-                pass
+            except (ImportError, OSError) as e:
+                errors.append(f"Folder permissions not saved: {e}")
 
             self._append_chat("NEXUS: ", "nexus")
-            self._append_chat("Settings saved.\n\n", "info")
+            if errors:
+                self._append_chat(
+                    "Settings saved with errors:\n  - " + "\n  - ".join(errors) + "\n\n",
+                    "error",
+                )
+            else:
+                self._append_chat("Settings saved.\n\n", "info")
             win.destroy()
 
         save_btn = tk.Button(bottom, text="Save", font=FONT_BTN,
@@ -840,10 +853,6 @@ class QuickOpenApp:
             except Exception as e:
                 self.root.after(0, self._append_chat, f"Training error: {e}\n\n", "error")
         threading.Thread(target=_do_train, daemon=True).start()
-
-    def _manage_folders(self):
-        """Open settings dialog to manage folders."""
-        self._open_settings()
 
     def _clear_chat(self):
         """Clear the chat area."""
@@ -1191,9 +1200,8 @@ class QuickOpenApp:
         t = threading.Thread(target=_process, daemon=True)
         t.start()
 
-    def _show_response(self, result):
-        """Display the response from NEXUS."""
-        # Remove the "Thinking..." line
+    def _remove_thinking_line(self):
+        """Find and delete the "Thinking..." placeholder line, if present."""
         self.chat_area.config(state=tk.NORMAL)
         content = self.chat_area.get("1.0", tk.END)
         thinking_idx = content.rfind("Thinking...\n")
@@ -1206,24 +1214,16 @@ class QuickOpenApp:
             self.chat_area.delete(start_pos, end_pos)
         self.chat_area.config(state=tk.DISABLED)
 
+    def _show_response(self, result):
+        """Display the response from NEXUS."""
+        self._remove_thinking_line()
         self._append_chat(f"{result}\n\n", "response")
         self._set_status("Ready", self._theme["success_grn"])
         self._processing = False
 
     def _show_error(self, error_msg):
         """Display an error message."""
-        self.chat_area.config(state=tk.NORMAL)
-        content = self.chat_area.get("1.0", tk.END)
-        thinking_idx = content.rfind("Thinking...\n")
-        if thinking_idx >= 0:
-            before = content[:thinking_idx]
-            line = before.count("\n") + 1
-            col = len(before.split("\n")[-1])
-            start_pos = f"{line}.{col}"
-            end_pos = f"{line}.{col + len('Thinking...') + 1}"
-            self.chat_area.delete(start_pos, end_pos)
-        self.chat_area.config(state=tk.DISABLED)
-
+        self._remove_thinking_line()
         self._append_chat(f"Error: {error_msg}\n\n", "error")
         self._set_status("Error occurred", self._theme["error_red"])
         self._processing = False

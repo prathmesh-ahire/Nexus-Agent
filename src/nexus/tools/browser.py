@@ -2,7 +2,9 @@
 browser.py — NEXUS Web Data Fetch, Save & Browser Automation
 Fetches live data from the web (stock prices, web page text) and saves
 it locally as .txt files. Also provides browser automation using Selenium
-with the Microsoft Edge WebDriver (msedgedriver.exe shipped in src/).
+with the Microsoft Edge WebDriver -- no driver binary ships with NEXUS;
+Selenium Manager (built into selenium 4.6+) downloads a version-matched
+msedgedriver automatically on first use.
 Supports opening URLs, searching the web, and scraping visible text.
 
 Uses:

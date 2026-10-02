@@ -1,12 +1,9 @@
 @echo off
 title NEXUS - Training Pipeline
 cd /d "%~dp0"
-call venv\Scripts\activate
-echo Starting NEXUS training pipeline...
-echo Make sure your dataset .txt files are in the datasets/ folder
-echo For faster training: python src/trainer.py --quick
+echo Put your dataset .txt files in datasets\ first.
+echo For a faster run: train.bat --quick
 echo.
-python src/trainer.py %*
+venv\Scripts\python.exe -m nexus.training.trainer %*
 echo.
-echo Training session complete. Press any key to close.
 pause

@@ -1,15 +1,18 @@
 # ═══════════════════════════════════════════════════
 # NEXUS Agent — .gitignore
-# Protects sensitive data, large binaries, and 
-# user-specific files from being pushed to GitHub.
 # ═══════════════════════════════════════════════════
 
-# --- Python cache & bytecode ---
+# --- Python ---
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 *.egg-info/
 *.egg
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # --- Virtual environments ---
 venv/
@@ -17,36 +20,36 @@ venv/
 env/
 .env
 
-# --- Model files (large binaries — must NOT be pushed) ---
+# --- Model files (large binaries — never commit) ---
 model/*.gguf
 model/*.bin
+model/*.safetensors
 
-# --- Training data (user-specific) ---
+# --- Training artefacts (user-specific) ---
 lora-weights/
 datasets/*
 !datasets/README.txt
 
-# --- Config files with sensitive / user-specific data ---
+# --- Secrets & user state ---
 config/api_keys.json
 config/user_memory.json
+config/permissions.json
 
-# --- Internal docs (not for public GitHub) ---
-docs/
-
-# --- RAG index (generated, machine-specific) ---
+# --- Generated indexes & runtime state ---
 rag-index/
-
-# --- Misc ---
-*.log
 tasks_queue.json
+*.log
 .cache/
 
-# --- Archived old interfaces (no longer needed) ---
-src/_archive/
+# --- Internal working docs (not for the public repo) ---
+docs/
 
-# --- Browser driver (large binary) ---
-src/msedgedriver.exe
+# --- Browser drivers (resolved at runtime by Selenium Manager) ---
+msedgedriver.exe
+chromedriver.exe
 
-# --- Keep these config templates trackable ---
-# config/settings.json         — tracked (template values only)
-# config/permissions.json      — tracked (template values only)
+# --- OS / editor cruft ---
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/

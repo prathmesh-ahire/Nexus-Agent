@@ -1,38 +1,48 @@
-# =============================================
-# NEXUS Agent -- Python Dependencies
-# =============================================
-# Install all: pip install -r requirements.txt
-# =============================================
+# NEXUS Agent — dependencies
+#
+# Preferred install (uses pyproject.toml, gives you the `nexus` command):
+#     setup.bat
+# or:
+#     pip install -e ".[web,hotkey,dev]" \
+#         --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+#
+# This file is kept for the in-app "install missing packages" button and for
+# environments that cannot use an editable install.
+#
+# NOTE: install llama-cpp-python from the prebuilt CPU wheel index above.
+# Building it from source on Windows fails on the 260-character path limit
+# while unpacking the vendored llama.cpp sources.
 
-# --- Core (required) ---
-llama-cpp-python>=0.2.0
+# --- Core ---
+llama-cpp-python>=0.3.0
 psutil>=5.9.0
 rich>=13.0.0
 
-# --- File handling ---
-pdfplumber>=0.9.0
+# --- Document parsing ---
+pdfplumber>=0.11.0
 openpyxl>=3.1.0
-python-docx>=0.8.11
-
-# --- Training / Fine-tuning ---
-transformers>=4.35.0
-peft>=0.6.0
-datasets>=2.14.0
-
-# --- RAG / Document search ---
-sentence-transformers>=2.2.0
-faiss-cpu>=1.7.0
-
-# --- Web search (Phase 29) ---
-google-genai>=1.0.0
-
-# --- Browser automation (optional) ---
-selenium>=4.10.0
-
-# --- Stock prices (optional) ---
-yfinance>=0.2.0
+python-docx>=1.1.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 
-# --- Quick Open hotkey (optional) ---
+# --- Optional: web search, browser automation, stock data ---
+google-genai>=1.0.0
+selenium>=4.20.0
+yfinance>=0.2.40
+
+# --- Optional: global Ctrl+Alt+N hotkey ---
 pynput>=1.7.0
+
+# --- Optional: RAG document search ---
+# sentence-transformers>=3.0.0
+# faiss-cpu>=1.8.0
+
+# --- Optional: LoRA fine-tuning (large download, needs PyTorch) ---
+# transformers>=4.44.0
+# peft>=0.12.0
+# datasets>=2.20.0
+# accelerate>=0.33.0
+
+# --- Development ---
+pytest>=8.0.0
+ruff>=0.6.0

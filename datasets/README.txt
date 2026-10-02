@@ -69,6 +69,7 @@ TIPS
   same folder and NEXUS will parse all of them.
 - Minimum recommended: 10 Q&A pairs for meaningful training.
 - Keep answers concise (1-3 sentences) for best results.
-- Run train.bat to start training after adding your datasets.
+- Run train.bat to start training, or use the three-dot menu > "Train on Dataset"
+  in the Quick Menu to train directly from the GUI.
 
 ===============================================================

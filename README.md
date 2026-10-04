@@ -1,6 +1,6 @@
 # NEXUS
 
-**A local-first AI agent for Windows.** Runs a 3B language model entirely on your own machine — no cloud, no API key, no data leaving your laptop. Lives as a floating overlay one hotkey away.
+**A local-first AI agent for Windows.** Runs a 3B language model entirely on your own machine — no cloud, no API key, no data leaving your laptop. Opens as a compact native window, same as any other app.
 
 [![CI](https://github.com/manofculture55/Nexus-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/manofculture55/Nexus-Agent/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
@@ -11,7 +11,7 @@
 
 ## What it does
 
-Press `Ctrl+Alt+N` anywhere in Windows and NEXUS appears. Ask it to summarise a PDF, check your battery, rename a file, search your documents, or answer a question — and it does the work locally on CPU.
+Launch NEXUS and ask it to summarise a PDF, check your battery, rename a file, search your documents, or answer a question — and it does the work locally on CPU.
 
 | | |
 |---|---|
@@ -68,8 +68,11 @@ src/nexus/
 │   ├── permissions.py Folder allowlist for file access
 │   └── confirm.py     Confirmation gateway for destructive actions
 ├── ui/
-│   ├── app.py         Quick Menu overlay (Tkinter)
-│   └── themes.py      Dark / light / blue themes
+│   ├── server.py       FastAPI backend (HTTP + WebSocket)
+│   ├── desktop.py      pywebview window launcher (console-script entry point)
+│   ├── web/            HTML/CSS/JS frontend
+│   ├── app.py          Tkinter Quick Menu (legacy, being retired)
+│   └── themes.py       Dark / Light / Blue theme definitions
 └── training/
     └── trainer.py     LoRA fine-tuning pipeline (experimental, see below)
 ```
@@ -115,7 +118,7 @@ pytest                    # run the test suite
 ruff check src tests      # lint
 ```
 
-Optional feature groups: `.[rag]`, `.[training]`, `.[hotkey]`, `.[all]`.
+Optional feature groups: `.[rag]`, `.[training]`, `.[all]`.
 
 ---
 

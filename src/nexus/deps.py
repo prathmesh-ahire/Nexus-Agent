@@ -23,12 +23,14 @@ REQUIRED_PACKAGES = [
     ("rich",                  "rich",                "Formatted CLI output"),
     ("sentence_transformers", "sentence-transformers", "Document embeddings"),
     ("faiss",                 "faiss-cpu",           "Vector search index"),
+    ("fastapi",               "fastapi",             "Backend web framework"),
+    ("uvicorn",               "uvicorn[standard]",   "ASGI server"),
+    ("webview",               "pywebview",           "Native window wrapper"),
 ]
 
 # Optional packages: missing ones disable specific features but NEXUS still runs.
 # Format: (import_name, pip_name, description, feature_it_enables)
 OPTIONAL_PACKAGES = [
-    ("pynput",                "pynput",              "Global hotkeys",            "Ctrl+Alt+N hotkey"),
     ("transformers",          "transformers",        "Model training framework", "LoRA training (experimental)"),
     ("peft",                  "peft",                "LoRA adapter framework",   "LoRA training (experimental)"),
     ("datasets",              "datasets",            "Dataset loading",          "LoRA training (experimental)"),

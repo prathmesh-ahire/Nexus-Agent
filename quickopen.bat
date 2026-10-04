@@ -10,5 +10,4 @@ if not exist "venv\Scripts\pythonw.exe" (
 )
 
 echo Starting NEXUS...
-echo Press Ctrl+Alt+N to show or hide the window.
 start "" venv\Scripts\pythonw.exe -m nexus

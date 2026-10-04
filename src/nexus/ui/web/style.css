@@ -1,0 +1,426 @@
+/* NEXUS -- Quick Menu web frontend styles.
+   Theme palettes mirror ui/themes.py's THEMES dict so the two stay in sync
+   by inspection; CSS custom properties (not JS) do the actual switching,
+   toggled by a [data-theme] attribute on <html> (V4.0 Phase 42). */
+
+:root,
+[data-theme="Dark"] {
+  --bg-dark: #0A1931;
+  --bg-medium: #1A3D63;
+  --bg-chat: #0D2137;
+  --fg-text: #F6FAFD;
+  --fg-dim: #B3CFE5;
+  --accent: #4A7FA7;
+  --accent-hover: #5E9CC7;
+  --error: #f38ba8;
+  --success: #a6e3a1;
+  --thinking: #f9e2af;
+  --pill-bg: #162D4A;
+  --pill-hover: #1E4D7A;
+  --menu-bg: #122340;
+  --menu-hover: #1A3D63;
+  --border: #1E4D7A;
+}
+
+[data-theme="Light"] {
+  --bg-dark: #F0F4F8;
+  --bg-medium: #E2E8F0;
+  --bg-chat: #FFFFFF;
+  --fg-text: #1A202C;
+  --fg-dim: #718096;
+  --accent: #3182CE;
+  --accent-hover: #2B6CB0;
+  --error: #E53E3E;
+  --success: #38A169;
+  --thinking: #D69E2E;
+  --pill-bg: #E2E8F0;
+  --pill-hover: #CBD5E0;
+  --menu-bg: #FFFFFF;
+  --menu-hover: #EDF2F7;
+  --border: #CBD5E0;
+}
+
+[data-theme="Blue"] {
+  --bg-dark: #0F172A;
+  --bg-medium: #1E293B;
+  --bg-chat: #0F172A;
+  --fg-text: #F1F5F9;
+  --fg-dim: #94A3B8;
+  --accent: #3B82F6;
+  --accent-hover: #60A5FA;
+  --error: #FB7185;
+  --success: #4ADE80;
+  --thinking: #FACC15;
+  --pill-bg: #1E293B;
+  --pill-hover: #334155;
+  --menu-bg: #1E293B;
+  --menu-hover: #334155;
+  --border: #334155;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--fg-text);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/* Main window chrome -- this IS the window shape; the OS window itself
+   is frameless and transparent (set up in Phase 43), so rounded corners
+   and shadow here are the whole visual payoff of the rebuild.          */
+/* ------------------------------------------------------------------ */
+.app-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-dark);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border);
+}
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  flex: 0 0 38px;
+  background: var(--bg-medium);
+  padding: 0 4px 0 12px;
+  user-select: none;
+}
+
+.title-bar__title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.title-bar__controls {
+  display: flex;
+  gap: 2px;
+}
+
+.win-btn {
+  width: 30px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--fg-dim);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.win-btn:hover { background: var(--accent); color: var(--fg-text); }
+.win-btn--close { color: var(--error); }
+.win-btn--close:hover { background: #C0392B; color: #fff; }
+.win-btn--menu { font-size: 16px; }
+
+/* ------------------------------------------------------------------ */
+/* Dropdown menu                                                       */
+/* ------------------------------------------------------------------ */
+.dropdown-menu {
+  position: absolute;
+  top: 40px;
+  right: 6px;
+  width: 210px;
+  background: var(--menu-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  z-index: 50;
+}
+
+.dropdown-menu[hidden] { display: none; }
+
+.dropdown-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--fg-text);
+  transition: background-color 0.12s ease;
+}
+
+.dropdown-menu__item:hover { background: var(--menu-hover); }
+.dropdown-menu__item--theme { padding-left: 22px; }
+.dropdown-menu__label {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dropdown-menu__sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Status bar                                                          */
+/* ------------------------------------------------------------------ */
+.status-bar {
+  flex: 0 0 auto;
+  padding: 4px 12px 0;
+  font-size: 11px;
+  color: var(--thinking);
+}
+
+/* ------------------------------------------------------------------ */
+/* Chat                                                                 */
+/* ------------------------------------------------------------------ */
+.chat {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  margin: 6px 8px;
+  padding: 12px 14px;
+  background: var(--bg-chat);
+  border-radius: 10px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.msg { margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+.msg__label { font-weight: 700; }
+.msg--user .msg__label { color: var(--success); }
+.msg--nexus .msg__label { color: var(--accent-hover); }
+.msg--info { color: var(--fg-dim); }
+.msg--error { color: var(--error); }
+.msg--thinking { color: var(--thinking); font-style: italic; }
+
+/* ------------------------------------------------------------------ */
+/* Quick-action pills                                                  */
+/* ------------------------------------------------------------------ */
+.pills {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px 4px;
+}
+
+.pill {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: var(--pill-bg);
+  color: var(--fg-dim);
+  font-size: 11px;
+  text-align: center;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.pill:hover { background: var(--pill-hover); color: var(--fg-text); }
+
+/* ------------------------------------------------------------------ */
+/* Input row                                                            */
+/* ------------------------------------------------------------------ */
+.input-row {
+  display: flex;
+  gap: 6px;
+  padding: 0 8px 10px;
+}
+
+.input-row__field {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--fg-text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input-row__field:focus { border-color: var(--accent); }
+
+.input-row__send {
+  width: 42px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--fg-text);
+  font-size: 16px;
+  font-weight: 700;
+  transition: background-color 0.12s ease;
+}
+
+.input-row__send:hover { background: var(--accent-hover); }
+.input-row__send:disabled { opacity: 0.5; cursor: default; }
+
+.accent-bar {
+  height: 3px;
+  flex: 0 0 3px;
+  background: var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Modals (Settings / About / Train / Confirm)                         */
+/* ------------------------------------------------------------------ */
+.modal {
+  width: min(380px, 90vw);
+  max-height: 80vh;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-dark);
+  color: var(--fg-text);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.modal::backdrop { background: rgba(0, 0, 0, 0.45); }
+
+.modal__titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding: 0 6px 0 14px;
+  background: var(--bg-medium);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.modal__body {
+  padding: 14px;
+  overflow-y: auto;
+  max-height: calc(80vh - 90px);
+}
+
+.modal__section { margin-bottom: 16px; }
+.modal__section h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.modal__row { display: flex; gap: 8px; margin-top: 6px; }
+
+.modal__footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--fg-dim);
+}
+
+.field input, .field__input {
+  flex: 1;
+  max-width: 140px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-medium);
+  color: var(--fg-text);
+  font-size: 13px;
+}
+
+.field__input { max-width: none; }
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--fg-dim);
+}
+
+.folder-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  max-height: 110px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-medium);
+}
+
+.folder-list li {
+  padding: 6px 8px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.folder-list li:last-child { border-bottom: none; }
+.folder-list li.selected { background: var(--accent); color: var(--fg-text); }
+
+.btn {
+  padding: 7px 16px;
+  border-radius: 7px;
+  background: var(--pill-bg);
+  color: var(--fg-text);
+  font-size: 12px;
+  transition: background-color 0.12s ease;
+}
+
+.btn:hover { background: var(--pill-hover); }
+.btn--accent { background: var(--accent); }
+.btn--accent:hover { background: var(--accent-hover); }
+.btn--danger { color: var(--error); }
+.btn--pill { font-size: 11px; padding: 5px 10px; }
+
+.muted { color: var(--fg-dim); font-size: 12px; }
+
+.about__brand { text-align: center; margin-bottom: 10px; }
+.about__name { font-size: 22px; font-weight: 700; color: var(--accent); }
+.about__tagline { font-size: 12px; color: var(--fg-dim); }
+
+.about__rows {
+  margin: 10px 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.about__rows div {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.about__rows dt { color: var(--fg-dim); }
+.about__rows dd { margin: 0; }
+
+.modal--confirm .modal__titlebar { background: var(--error); color: #fff; }
+
+/* Phone-width layout safety */
+@media (max-width: 480px) {
+  .pills { flex-wrap: wrap; }
+}

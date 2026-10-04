@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="Dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXUS</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-window">
+
+  <!-- Title bar -->
+  <header class="title-bar pywebview-drag-region">
+    <span class="title-bar__title">NEXUS</span>
+    <div class="title-bar__controls">
+      <button class="win-btn win-btn--menu" id="menu-btn" title="Menu" aria-label="Menu">&vellip;</button>
+      <button class="win-btn win-btn--min" id="min-btn" title="Minimize" aria-label="Minimize">&#x2014;</button>
+      <button class="win-btn win-btn--max" id="max-btn" title="Maximize" aria-label="Maximize">&#x25a1;</button>
+      <button class="win-btn win-btn--close" id="close-btn" title="Close" aria-label="Close">&#x2715;</button>
+    </div>
+  </header>
+
+  <!-- Dropdown menu -->
+  <div class="dropdown-menu" id="main-menu" hidden>
+    <button class="dropdown-menu__item" data-action="settings">Settings</button>
+    <button class="dropdown-menu__item" data-action="reset-model">Reset Model</button>
+    <button class="dropdown-menu__item" data-action="train">Train on Dataset (Experimental)</button>
+    <div class="dropdown-menu__sep"></div>
+    <button class="dropdown-menu__item" data-action="clear-chat">Clear Chat</button>
+    <div class="dropdown-menu__sep"></div>
+    <div class="dropdown-menu__label">Theme</div>
+    <button class="dropdown-menu__item dropdown-menu__item--theme" data-theme-name="Dark">Dark</button>
+    <button class="dropdown-menu__item dropdown-menu__item--theme" data-theme-name="Light">Light</button>
+    <button class="dropdown-menu__item dropdown-menu__item--theme" data-theme-name="Blue">Blue</button>
+    <div class="dropdown-menu__sep"></div>
+    <button class="dropdown-menu__item" data-action="about">About NEXUS</button>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="status-bar">Loading model...</div>
+
+  <!-- Chat -->
+  <main class="chat" id="chat"></main>
+
+  <!-- Quick-action pills -->
+  <div class="pills" id="pills">
+    <button class="pill" data-insert="/task ">/task</button>
+    <button class="pill" data-insert="/remember ">/remember</button>
+    <button class="pill" data-insert="/recall">/recall</button>
+    <button class="pill" data-insert="/help">/help</button>
+  </div>
+
+  <!-- Input row -->
+  <form class="input-row" id="input-form">
+    <input
+      class="input-row__field"
+      id="input-field"
+      type="text"
+      placeholder="Type a command..."
+      autocomplete="off"
+    >
+    <button class="input-row__send" id="send-btn" type="submit" aria-label="Send">&#x2192;</button>
+  </form>
+
+  <div class="accent-bar"></div>
+</div>
+
+<!-- Settings modal -->
+<dialog class="modal" id="settings-modal">
+  <div class="modal__titlebar">
+    <span>Settings</span>
+    <button class="win-btn win-btn--close" data-close-modal>&#x2715;</button>
+  </div>
+  <div class="modal__body">
+    <section class="modal__section">
+      <h3>Model Configuration</h3>
+      <label class="field">
+        <span>max_tokens</span>
+        <input type="number" id="setting-max_tokens">
+      </label>
+      <label class="field">
+        <span>n_ctx</span>
+        <input type="number" id="setting-n_ctx">
+      </label>
+      <label class="field">
+        <span>n_threads</span>
+        <input type="number" id="setting-n_threads">
+      </label>
+    </section>
+
+    <section class="modal__section">
+      <h3>Folder Permissions</h3>
+      <ul class="folder-list" id="folder-list"></ul>
+      <div class="modal__row">
+        <button class="btn btn--pill" id="add-folder-btn">+ Add Folder</button>
+        <button class="btn btn--pill btn--danger" id="remove-folder-btn">- Remove Selected</button>
+      </div>
+    </section>
+
+    <section class="modal__section">
+      <h3>Packages</h3>
+      <p class="muted" id="deps-status"></p>
+      <button class="btn" id="install-deps-btn">Install Missing Packages</button>
+    </section>
+  </div>
+  <div class="modal__footer">
+    <button class="btn btn--accent" id="settings-save-btn">Save</button>
+    <button class="btn" data-close-modal>Cancel</button>
+  </div>
+</dialog>
+
+<!-- About modal -->
+<dialog class="modal modal--about" id="about-modal">
+  <div class="modal__titlebar">
+    <span>About NEXUS</span>
+    <button class="win-btn win-btn--close" data-close-modal>&#x2715;</button>
+  </div>
+  <div class="modal__body">
+    <div class="about__brand">
+      <div class="about__name">NEXUS</div>
+      <div class="about__tagline">Local AI Assistant</div>
+    </div>
+    <dl class="about__rows" id="about-rows"></dl>
+    <p class="muted">NEXUS runs entirely on your machine.<br>No cloud. No data leaves your PC.</p>
+  </div>
+  <div class="modal__footer">
+    <button class="btn btn--accent" data-close-modal>Close</button>
+  </div>
+</dialog>
+
+<!-- Train modal -->
+<dialog class="modal" id="train-modal">
+  <div class="modal__titlebar">
+    <span>Train on Dataset (Experimental)</span>
+    <button class="win-btn win-btn--close" data-close-modal>&#x2715;</button>
+  </div>
+  <div class="modal__body">
+    <p>Select a folder of Q&amp;A dataset files (.txt, .csv, .json, .jsonl, .xlsx).</p>
+    <div class="modal__row">
+      <input class="field__input" id="train-folder" type="text" placeholder="Folder path" readonly>
+      <button class="btn btn--pill" id="train-browse-btn">Browse...</button>
+    </div>
+    <label class="checkbox">
+      <input type="checkbox" id="train-quick">
+      <span>Quick mode (faster, lower quality)</span>
+    </label>
+  </div>
+  <div class="modal__footer">
+    <button class="btn btn--accent" id="train-start-btn">Start Training</button>
+    <button class="btn" data-close-modal>Cancel</button>
+  </div>
+</dialog>
+
+<!-- Confirm dialog (destructive actions) -->
+<dialog class="modal modal--confirm" id="confirm-modal">
+  <div class="modal__titlebar">
+    <span id="confirm-title">Confirm</span>
+  </div>
+  <div class="modal__body">
+    <p id="confirm-details"></p>
+  </div>
+  <div class="modal__footer">
+    <button class="btn btn--danger" id="confirm-yes-btn">Yes</button>
+    <button class="btn" id="confirm-no-btn">No</button>
+  </div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

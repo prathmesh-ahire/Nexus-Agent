@@ -68,10 +68,10 @@ def test_settings_roundtrip(tmp_path, monkeypatch):
 
 
 def test_theme_get_and_set(tmp_path, monkeypatch):
-    from nexus import config
+    from nexus.ui import themes
 
     target = tmp_path / "settings.json"
-    monkeypatch.setattr(config, "SETTINGS_FILE", target)
+    monkeypatch.setattr(themes, "_SETTINGS_FILE", str(target))
 
     response = client.post("/api/theme", json={"name": "Light"})
     assert response.status_code == 200

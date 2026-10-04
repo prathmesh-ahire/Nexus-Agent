@@ -583,13 +583,38 @@ def set_conversation_memory(memory_instance):
     _conversation_memory = memory_instance
 
 
+def _build_qa_context(question):
+    """
+    Build the (prompt, history_messages) pair ACTION:QA sends to the model.
+
+    Shared by route()'s non-streaming dispatch and route_stream()'s
+    streaming dispatch so the two can't drift apart (V4.0 Phase 41).
+    """
+    history_messages = None
+    if _conversation_memory and not _conversation_memory.is_empty:
+        history_messages = _conversation_memory.get_messages_for_model(max_turns=5)
+
+    # Inject relevant persistent memories into the prompt (Phase 28)
+    memory_context = ""
+    try:
+        from nexus.agent import memory
+        memory_context = memory.get_relevant_memories(question)
+    except Exception:
+        # Memory lookup is a best-effort enhancement — QA must still work
+        # if it fails, but the failure shouldn't vanish silently.
+        logger.debug("Memory lookup failed for QA; continuing without it", exc_info=True)
+
+    prompt = memory_context + "Answer the following question in 2-3 sentences. Be brief and direct:\n\n" + question
+    return prompt, history_messages
+
+
 def route(user_input):
     """
     Main entry point: classify the user's input and dispatch to the correct
     handler function. Returns the result string to be displayed to the user.
 
     Priority order:
-      1. Slash commands (/task, /web, /open, etc.) — instant, no LLM
+      1. Slash commands (/task, /remember, etc.) — instant, no LLM
       2. fast_route() keyword matching — fast, no LLM
       3. LLM intent detection — slowest, used as fallback
 
@@ -607,7 +632,17 @@ def route(user_input):
 
     # --- Normal routing: fast_route() → LLM fallback ---
     action, params = detect_intent(user_input)
+    return _dispatch_action(action, params, user_input)
 
+
+def _dispatch_action(action, params, user_input):
+    """
+    Call the handler for an already-classified action.
+
+    Split out from route() so the streaming path (route_stream(), used by
+    the FastAPI/pywebview UI) can reuse the exact same dispatch logic for
+    every non-QA action instead of duplicating this chain (V4.0 Phase 41).
+    """
     if action == "ACTION:SUMMARISE_FILE":
         # Lazy import to avoid circular imports and missing-module errors
         from nexus.tools import files
@@ -623,26 +658,8 @@ def route(user_input):
 
     if action == "ACTION:QA":
         from nexus.llm.loader import generate as _generate
-        from nexus.tools import files
         question = params if params else user_input
-
-        # Build conversation history for context-aware responses
-        history_messages = None
-        if _conversation_memory and not _conversation_memory.is_empty:
-            history_messages = _conversation_memory.get_messages_for_model(max_turns=5)
-
-        # Inject relevant persistent memories into the prompt (Phase 28)
-        memory_context = ""
-        try:
-            from nexus.agent import memory
-            memory_context = memory.get_relevant_memories(question)
-        except Exception:
-            # Memory lookup is a best-effort enhancement — QA must still work
-            # if it fails, but the failure shouldn't vanish silently.
-            logger.debug("Memory lookup failed for QA; continuing without it", exc_info=True)
-
-        # Use generate() directly with history for QA
-        prompt = memory_context + "Answer the following question in 2-3 sentences. Be brief and direct:\n\n" + question
+        prompt, history_messages = _build_qa_context(question)
         return _generate(prompt, max_tokens=200, conversation_history=history_messages)
 
     if action == "ACTION:BATTERY":
@@ -765,6 +782,43 @@ def route(user_input):
 
     # ACTION:UNKNOWN or anything unrecognised
     return "I did not understand that. Please try rephrasing."
+
+
+def route_stream(user_input, on_token):
+    """
+    Like route(), but delivers the reply incrementally via on_token()
+    instead of returning the complete string in one call. Used by the
+    FastAPI/pywebview UI's WebSocket endpoint to stream model output
+    live instead of showing a blocking placeholder (V4.0 Phase 41).
+
+    Only ACTION:QA is actually streamed token-by-token -- it's the only
+    action that calls the model for free-form generation. Every other
+    action (file ops, system info, slash commands, ...) resolves
+    instantly and is delivered to on_token() as a single chunk, via the
+    same _dispatch_action() route() uses, so the two entry points can't
+    disagree about what a given action does.
+
+    Args:
+        user_input: Raw string from the user.
+        on_token:   Callable invoked with each text chunk as it's ready.
+    """
+    from nexus.agent import commands
+    slash_result = commands.execute_input(user_input)
+    if slash_result is not None:
+        on_token(slash_result)
+        return
+
+    action, params = detect_intent(user_input)
+
+    if action == "ACTION:QA":
+        from nexus.llm.loader import generate_stream
+        question = params if params else user_input
+        prompt, history_messages = _build_qa_context(question)
+        for chunk in generate_stream(prompt, max_tokens=200, conversation_history=history_messages):
+            on_token(chunk)
+        return
+
+    on_token(_dispatch_action(action, params, user_input))
 
 
 # ---------------------------------------------------------------------------

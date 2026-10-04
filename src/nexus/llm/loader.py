@@ -16,7 +16,6 @@ import contextlib
 import json
 import os
 import shutil
-import sys
 import threading
 
 import psutil
@@ -115,7 +114,7 @@ def load_model():
         print(f"[ERROR] Model file not found at: {model_path}")
         print("Please download the GGUF model and place it in the model/ folder.")
         print("See the Install section of README.md for the download link.")
-        sys.exit(1)
+        raise FileNotFoundError(f"Model file not found at: {model_path}")
 
     # --- Load base GGUF model (with progress dots) --------------------------
     print("Loading NEXUS model (Qwen 2.5 3B), please wait", end="", flush=True)
@@ -151,7 +150,7 @@ def load_model():
         loading_done.set()
         print()  # newline after dots
         print(f"[ERROR] Failed to load model: {e}")
-        sys.exit(1)
+        raise RuntimeError(f"Failed to load model: {e}") from e
 
     loading_done.set()
     progress_thread.join(timeout=1)
@@ -229,6 +228,24 @@ SYSTEM_PROMPT = (
 )
 
 
+def _build_messages(prompt, system_prompt, conversation_history):
+    """Build the ChatML messages list shared by generate() and generate_stream()."""
+    sys_msg = system_prompt if system_prompt else SYSTEM_PROMPT
+    messages = [
+        {"role": "system", "content": sys_msg},
+    ]
+
+    if conversation_history:
+        for msg in conversation_history:
+            messages.append({
+                "role": msg["role"],
+                "content": msg["content"],
+            })
+
+    messages.append({"role": "user", "content": prompt})
+    return messages
+
+
 def generate(prompt, max_tokens=None, system_prompt=None, conversation_history=None):
     """
     Generate a response from the loaded model using ChatML chat completion.
@@ -256,22 +273,7 @@ def generate(prompt, max_tokens=None, system_prompt=None, conversation_history=N
         settings = load_settings()
         max_tokens = settings.get("max_tokens", 512)
 
-    # Build the messages list
-    sys_msg = system_prompt if system_prompt else SYSTEM_PROMPT
-    messages = [
-        {"role": "system", "content": sys_msg},
-    ]
-
-    # Insert conversation history (previous exchanges) if provided
-    if conversation_history:
-        for msg in conversation_history:
-            messages.append({
-                "role": msg["role"],
-                "content": msg["content"],
-            })
-
-    # Current user message goes last
-    messages.append({"role": "user", "content": prompt})
+    messages = _build_messages(prompt, system_prompt, conversation_history)
 
     # Run inference with a timeout to prevent hanging
     result_container = [None]
@@ -303,6 +305,48 @@ def generate(prompt, max_tokens=None, system_prompt=None, conversation_history=N
         return "Error generating response."
 
     return result_container[0] or "Error generating response."
+
+
+def generate_stream(prompt, max_tokens=None, system_prompt=None, conversation_history=None):
+    """
+    Like generate(), but yields text chunks as the model produces them
+    instead of returning the full response in one blocking call. Used by
+    the web UI's WebSocket endpoint to stream tokens live, replacing the
+    old Tkinter UI's blocking "Thinking..." placeholder swap (V4.0 Phase 41).
+
+    Args:
+        Same as generate().
+
+    Yields:
+        Successive text chunks; concatenating them gives the full response.
+        Yields a single error-message chunk instead if generation fails.
+    """
+    global model
+
+    if model is None:
+        load_model()
+
+    if max_tokens is None:
+        settings = load_settings()
+        max_tokens = settings.get("max_tokens", 512)
+
+    messages = _build_messages(prompt, system_prompt, conversation_history)
+
+    try:
+        with _inference_lock:
+            stream = model.create_chat_completion(
+                messages=messages,
+                max_tokens=max_tokens,
+                stop=["\n\n\n", "<|im_end|>"],
+                stream=True,
+            )
+            for chunk in stream:
+                delta = chunk["choices"][0].get("delta", {}).get("content")
+                if delta:
+                    yield delta
+    except Exception as e:
+        print(f"[ERROR] Streaming generation failed: {e}")
+        yield "Error generating response."
 
 
 # ===========================================================================

@@ -46,6 +46,7 @@ PROJECT_ROOT = str(config.PROJECT_ROOT)
 DATASETS_FOLDER = str(config.DATASETS_DIR)
 LORA_OUTPUT_FOLDER = str(config.LORA_WEIGHTS_DIR)
 BASE_MODEL_ID = "Qwen/Qwen2.5-3B-Instruct"
+SUPPORTED_EXTENSIONS = (".txt", ".csv", ".json", ".jsonl", ".xlsx")
 
 
 # ---------------------------------------------------------------------------
@@ -58,8 +59,6 @@ def validate_datasets():
     Returns a list of valid file paths.
     Exits with an error if no usable datasets are found.
     """
-    SUPPORTED_EXTENSIONS = (".txt", ".csv", ".json", ".jsonl", ".xlsx")
-
     if not os.path.isdir(DATASETS_FOLDER):
         print(f"[ERROR] Datasets folder not found: {DATASETS_FOLDER}")
         print("Please create the 'datasets' folder and add dataset files.")
@@ -618,6 +617,66 @@ def main():
     # Step 7: Train
     print("Step 6: Starting training...")
     run_training(model, tokenizer, train_dataset, val_dataset, quick_mode=args.quick)
+
+
+# ---------------------------------------------------------------------------
+# Folder-parameterised entry point, for callers other than the CLI (the web
+# UI's "Train on Dataset" action) -- raises on failure instead of calling
+# sys.exit(), since a server thread must be able to catch and report the
+# error instead of being silently killed (V4.0 Phase 41).
+# ---------------------------------------------------------------------------
+def train_on_folder(folder, quick_mode=False):
+    """
+    Run the same training pipeline as main(), but against an arbitrary
+    folder chosen by the user instead of the fixed datasets/ directory.
+
+    Args:
+        folder:     Path to a folder containing dataset files.
+        quick_mode: If True, trains faster with a higher learning rate.
+
+    Returns:
+        A human-readable success message string.
+
+    Raises:
+        FileNotFoundError: if the folder doesn't exist.
+        ValueError: if it has no usable dataset files.
+    """
+    if not os.path.isdir(folder):
+        raise FileNotFoundError(f"Folder not found: {folder}")
+
+    dataset_files = [
+        os.path.join(folder, f) for f in os.listdir(folder)
+        if f.lower().endswith(SUPPORTED_EXTENSIONS) and f.lower() != "readme.txt"
+        and os.path.getsize(os.path.join(folder, f)) > 0
+    ]
+    if not dataset_files:
+        raise ValueError(
+            f"No usable dataset files found in: {folder}\n"
+            "Supported formats: .txt, .csv, .json, .jsonl, .xlsx"
+        )
+
+    all_pairs = []
+    for filepath in dataset_files:
+        all_pairs.extend(parse_dataset_file(filepath))
+
+    if not all_pairs:
+        raise ValueError(
+            "No valid Q&A pairs found in the dataset files. "
+            "Expected format:  Q: question text\\nA: answer text"
+        )
+
+    formatted_texts = format_for_training(all_pairs)
+    tokenizer, train_dataset, val_dataset = load_and_tokenise(formatted_texts)
+    model = setup_lora_model()
+    run_training(model, tokenizer, train_dataset, val_dataset, quick_mode=quick_mode)
+
+    return (
+        f"Training complete on {len(all_pairs)} Q&A pair(s) from {len(dataset_files)} "
+        f"file(s). Adapter saved to {LORA_OUTPUT_FOLDER}.\n"
+        "Note: this adapter is in HuggingFace PEFT format -- NEXUS's inference "
+        "engine needs a GGUF adapter, so a manual conversion step is still "
+        "required before the custom training is actually used (see README)."
+    )
 
 
 # ---------------------------------------------------------------------------

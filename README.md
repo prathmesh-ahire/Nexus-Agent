@@ -7,6 +7,8 @@
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+![NEXUS screenshot](assets/screenshot.png)
+
 ---
 
 ## What it does
@@ -70,14 +72,15 @@ src/nexus/
 ├── ui/
 │   ├── server.py       FastAPI backend (HTTP + WebSocket)
 │   ├── desktop.py      pywebview window launcher (console-script entry point)
-│   ├── web/            HTML/CSS/JS frontend
-│   ├── app.py          Tkinter Quick Menu (legacy, being retired)
-│   └── themes.py       Dark / Light / Blue theme definitions
+│   ├── web/            HTML/CSS/JS frontend (no build step)
+│   └── themes.py       Theme name persistence, shared by /theme and the UI
 └── training/
     └── trainer.py     LoRA fine-tuning pipeline (experimental, see below)
 ```
 
-**Request flow:** input → slash command? → keyword fast path → LLM intent classification → tool → response.
+**Request flow:** browser UI (pywebview) → FastAPI (`server.py`) → `agent/router.py` → slash command? → keyword fast path → LLM intent classification → tool → streamed response.
+
+The frontend talks to the backend over one WebSocket: chat messages stream back token-by-token, and destructive actions (delete, shutdown, reset training) push a confirmation prompt over the same connection and block server-side until the user answers it.
 
 > **Training is experimental.** `trainer.py` runs real LoRA fine-tuning and
 > produces a working HuggingFace PEFT adapter — but NEXUS's inference engine

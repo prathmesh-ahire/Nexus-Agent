@@ -94,6 +94,9 @@
         currentNexusBubble = null;
         setProcessing(false);
         setStatus("Ready", "var(--success)");
+        // Pick up a theme change made via "/theme <name>" typed in chat,
+        // not just the dropdown menu -- both paths should apply live.
+        loadSavedTheme();
         break;
 
       case "confirm":

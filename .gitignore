@@ -31,8 +31,8 @@ datasets/*
 !datasets/README.txt
 
 # --- Secrets & user state ---
-config/api_keys.json
 config/user_memory.json
+config/user_memory.json.bak
 config/permissions.json
 
 # --- Generated indexes & runtime state ---
@@ -43,10 +43,6 @@ tasks_queue.json
 
 # --- Internal working docs (not for the public repo) ---
 docs/
-
-# --- Browser drivers (resolved at runtime by Selenium Manager) ---
-msedgedriver.exe
-chromedriver.exe
 
 # --- OS / editor cruft ---
 Thumbs.db

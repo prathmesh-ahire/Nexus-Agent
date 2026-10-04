@@ -488,7 +488,7 @@ def handle_theme(args):
     for name in available:
         if name.lower() == requested.lower():
             themes.save_theme(name)
-            return f"Theme switched to {name}. Restart the Quick Menu to see changes."
+            return f"Theme switched to {name}."
 
     return (f"Unknown theme: \"{requested}\"\n"
             f"Available themes: {', '.join(available)}")

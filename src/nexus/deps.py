@@ -17,8 +17,6 @@ import importlib
 # Format: (import_name, pip_name, description)
 REQUIRED_PACKAGES = [
     ("llama_cpp",             "llama-cpp-python",    "LLM inference engine"),
-    ("transformers",          "transformers",        "Model training framework"),
-    ("peft",                  "peft",                "LoRA adapter framework"),
     ("pdfplumber",            "pdfplumber",          "PDF file reading"),
     ("openpyxl",              "openpyxl",            "Excel file reading"),
     ("psutil",                "psutil",              "System monitoring"),
@@ -31,6 +29,10 @@ REQUIRED_PACKAGES = [
 # Format: (import_name, pip_name, description, feature_it_enables)
 OPTIONAL_PACKAGES = [
     ("pynput",                "pynput",              "Global hotkeys",            "Ctrl+Alt+N hotkey"),
+    ("transformers",          "transformers",        "Model training framework", "LoRA training (experimental)"),
+    ("peft",                  "peft",                "LoRA adapter framework",   "LoRA training (experimental)"),
+    ("datasets",              "datasets",            "Dataset loading",          "LoRA training (experimental)"),
+    ("accelerate",            "accelerate",          "Training acceleration",    "LoRA training (experimental)"),
 ]
 
 

@@ -444,7 +444,7 @@ class QuickOpenApp:
         menu_items = [
             ("Settings", self._open_settings),
             ("Reset Model", self._reset_model),
-            ("Train on Dataset", self._train_dataset),
+            ("Train on Dataset (Experimental)", self._train_dataset),
             None,  # Separator
             ("Clear Chat", self._clear_chat),
             None,  # Separator
@@ -791,6 +791,12 @@ class QuickOpenApp:
         if not folder:
             return
         self._append_chat("NEXUS: ", "nexus")
+        self._append_chat(
+            "Experimental feature: training produces a real PEFT adapter, but "
+            "NEXUS's inference engine (llama.cpp) can't load it directly -- it "
+            "needs a manual GGUF conversion first. See README for details.\n",
+            "info",
+        )
         self._append_chat(f"Training on: {folder}\n", "info")
         self._append_chat("This may take a while...\n\n", "thinking")
 

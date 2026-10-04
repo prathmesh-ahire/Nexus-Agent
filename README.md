@@ -20,7 +20,7 @@ Press `Ctrl+Alt+N` anywhere in Windows and NEXUS appears. Ask it to summarise a 
 | **System** | Battery, running processes, shutdown/restart/sleep |
 | **Search** | Semantic search across your own documents (RAG) |
 | **Memory** | Remembers facts about you between sessions |
-| **Training** *(optional)* | LoRA fine-tuning on your own Q&A data |
+| **Training** *(experimental)* | LoRA fine-tuning on your own Q&A data — see note below |
 
 Fully offline — no internet access required for any feature. Runs on a laptop with **no GPU** and 8 GB of RAM.
 
@@ -71,10 +71,19 @@ src/nexus/
 │   ├── app.py         Quick Menu overlay (Tkinter)
 │   └── themes.py      Dark / light / blue themes
 └── training/
-    └── trainer.py     LoRA fine-tuning pipeline
+    └── trainer.py     LoRA fine-tuning pipeline (experimental, see below)
 ```
 
 **Request flow:** input → slash command? → keyword fast path → LLM intent classification → tool → response.
+
+> **Training is experimental.** `trainer.py` runs real LoRA fine-tuning and
+> produces a working HuggingFace PEFT adapter — but NEXUS's inference engine
+> (`llama-cpp-python`) only loads GGUF-format adapters. Closing that gap
+> means running llama.cpp's `convert_lora_to_gguf.py` on the output by hand
+> (that script isn't published as an installable package, so it isn't
+> wired into `trainer.py` automatically). Until that conversion step is
+> run, training completes successfully but the base model keeps answering
+> — the custom knowledge isn't live yet.
 
 ### Safety model
 

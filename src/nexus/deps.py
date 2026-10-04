@@ -21,8 +21,6 @@ REQUIRED_PACKAGES = [
     ("openpyxl",              "openpyxl",            "Excel file reading"),
     ("psutil",                "psutil",              "System monitoring"),
     ("rich",                  "rich",                "Formatted CLI output"),
-    ("sentence_transformers", "sentence-transformers", "Document embeddings"),
-    ("faiss",                 "faiss-cpu",           "Vector search index"),
     ("fastapi",               "fastapi",             "Backend web framework"),
     ("uvicorn",               "uvicorn[standard]",   "ASGI server"),
     ("webview",               "pywebview",           "Native window wrapper"),
@@ -31,6 +29,8 @@ REQUIRED_PACKAGES = [
 # Optional packages: missing ones disable specific features but NEXUS still runs.
 # Format: (import_name, pip_name, description, feature_it_enables)
 OPTIONAL_PACKAGES = [
+    ("sentence_transformers", "sentence-transformers", "Document embeddings",    "RAG / document search"),
+    ("faiss",                 "faiss-cpu",           "Vector search index",      "RAG / document search"),
     ("transformers",          "transformers",        "Model training framework", "LoRA training (experimental)"),
     ("peft",                  "peft",                "LoRA adapter framework",   "LoRA training (experimental)"),
     ("datasets",              "datasets",            "Dataset loading",          "LoRA training (experimental)"),

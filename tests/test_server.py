@@ -103,6 +103,44 @@ def test_permissions_roundtrip(tmp_path, monkeypatch):
     assert str(allowed) in response.json()["paths"]
 
 
+def test_rag_status_reports_deps_and_index_state(monkeypatch):
+    from nexus.tools import rag
+
+    monkeypatch.setattr(rag, "has_index", lambda: True)
+    monkeypatch.setattr(rag, "get_index_info", lambda: "RAG Index Status:\n  Files: 3")
+
+    response = client.get("/api/rag/status")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["has_index"] is True
+    assert "Files: 3" in body["info"]
+
+
+def test_rag_ask_delegates_to_rag_module(monkeypatch):
+    from nexus.tools import rag
+
+    monkeypatch.setattr(rag, "ask", lambda question: f"Answer to: {question}")
+
+    response = client.post("/api/rag/ask", json={"question": "what is my revenue?"})
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Answer to: what is my revenue?"
+
+
+def test_rag_index_runs_in_background_and_reports_over_the_websocket(monkeypatch):
+    from nexus.tools import rag
+
+    monkeypatch.setattr(rag, "build_index", lambda folder: f"Indexed: {folder}")
+
+    with client.websocket_connect("/api/ws") as ws:
+        response = client.post("/api/rag/index", json={"folder": "C:/docs"})
+        assert response.status_code == 200
+        assert response.json()["status"] == "started"
+
+        msg = ws.receive_json()
+        assert msg["type"] == "rag_index_complete"
+        assert msg["reply"] == "Indexed: C:/docs"
+
+
 def test_memory_endpoint_returns_a_list(tmp_path, monkeypatch):
     from nexus.agent import memory
 

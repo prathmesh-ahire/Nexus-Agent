@@ -110,23 +110,23 @@ def build_index(folder_path):
 
     # --- Find supported files ---
     supported_exts = (".txt", ".pdf", ".xlsx", ".xls")
-    files = [
+    filenames = [
         f for f in os.listdir(folder_path)
         if os.path.isfile(os.path.join(folder_path, f))
         and f.lower().endswith(supported_exts)
         and f != "summary_output.txt"
     ]
 
-    if not files:
+    if not filenames:
         return "No supported files found in this folder. Supported: .txt, .pdf, .xlsx"
 
     # --- Read and chunk all files ---
     from nexus.tools import files
 
     all_chunks = []   # list of {"filename", "chunk_num", "text"}
-    total_files = len(files)
+    total_files = len(filenames)
 
-    for i, filename in enumerate(files, 1):
+    for i, filename in enumerate(filenames, 1):
         filepath = os.path.join(folder_path, filename)
         print(f"  Reading file {i}/{total_files}: {filename}...")
 

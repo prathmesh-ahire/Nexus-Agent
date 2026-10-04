@@ -107,6 +107,11 @@
         appendMessage("NEXUS: ", msg.reply, "nexus");
         break;
 
+      case "rag_index_complete":
+        appendMessage("NEXUS: ", msg.reply, "nexus");
+        refreshRagStatus();
+        break;
+
       default:
         console.warn("Unknown WS message type:", msg);
     }
@@ -160,12 +165,13 @@
   // ------------------------------------------------------------------
   // Quick-action pills
   // ------------------------------------------------------------------
-  document.querySelectorAll(".pill").forEach((pill) => {
+  document.querySelectorAll(".pill[data-insert]").forEach((pill) => {
     pill.addEventListener("click", () => {
       inputField.value = pill.dataset.insert;
       inputField.focus();
     });
   });
+  document.getElementById("rag-pill").addEventListener("click", openRagModal);
 
   // ------------------------------------------------------------------
   // Window controls (real behaviour wired up once pywebview is present --
@@ -208,6 +214,7 @@
       case "settings": openSettingsModal(); break;
       case "reset-model": resetModel(); break;
       case "train": openTrainModal(); break;
+      case "rag": openRagModal(); break;
       case "clear-chat": clearChat(); break;
       case "about": openAboutModal(); break;
     }
@@ -427,6 +434,83 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ folder, quick }),
     }).catch((e) => appendMessage("NEXUS: ", `Training error: ${e}`, "error"));
+  });
+
+  // ------------------------------------------------------------------
+  // Documents (RAG) modal -- a visible entry point for indexing and
+  // querying your files, instead of relying on exact-phrase chat text
+  // like "reindex my files" / "ask about my documents" (Phase 45).
+  // ------------------------------------------------------------------
+  const ragModal = document.getElementById("rag-modal");
+
+  function openRagModal() {
+    document.getElementById("rag-folder").value = "";
+    document.getElementById("rag-question").value = "";
+    document.getElementById("rag-index-status").textContent = "";
+    refreshRagStatus();
+    ragModal.showModal();
+  }
+
+  function refreshRagStatus() {
+    fetch("/api/rag/status")
+      .then((r) => r.json())
+      .then((data) => {
+        const status = document.getElementById("rag-deps-status");
+        if (data.deps_missing && data.deps_missing.length) {
+          status.textContent =
+            `RAG packages not installed: ${data.deps_missing.join(", ")}. ` +
+            `Install with: pip install ${data.deps_missing.join(" ")}`;
+        } else if (data.has_index) {
+          status.textContent = data.info || "Index ready.";
+        } else {
+          status.textContent = "No index yet. Index a folder to get started.";
+        }
+      })
+      .catch(() => {});
+  }
+
+  document.getElementById("rag-browse-btn").addEventListener("click", async () => {
+    let folder = await pywebviewCall("pick_folder");
+    if (!folder) folder = window.prompt("Folder path to index:");
+    if (folder) document.getElementById("rag-folder").value = folder;
+  });
+
+  document.getElementById("rag-index-btn").addEventListener("click", () => {
+    const folder = document.getElementById("rag-folder").value.trim();
+    if (!folder) return;
+    const status = document.getElementById("rag-index-status");
+    status.textContent = "Indexing... this may take a while.";
+    fetch("/api/rag/index", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder }),
+    }).catch((e) => {
+      status.textContent = `Error: ${e}`;
+    });
+  });
+
+  document.getElementById("rag-ask-btn").addEventListener("click", () => {
+    const question = document.getElementById("rag-question").value.trim();
+    if (!question) return;
+
+    ragModal.close();
+    appendMessage("You: ", question, "user");
+    setStatus("Searching your documents...", "var(--thinking)");
+
+    fetch("/api/rag/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        appendMessage("NEXUS: ", data.reply, "nexus");
+        setStatus("Ready", "var(--success)");
+      })
+      .catch((e) => {
+        appendMessage("NEXUS: ", `Error: ${e}`, "error");
+        setStatus("Error", "var(--error)");
+      });
   });
 
   // ------------------------------------------------------------------

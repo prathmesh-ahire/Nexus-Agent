@@ -26,6 +26,7 @@
     <button class="dropdown-menu__item" data-action="settings">Settings</button>
     <button class="dropdown-menu__item" data-action="reset-model">Reset Model</button>
     <button class="dropdown-menu__item" data-action="train">Train on Dataset (Experimental)</button>
+    <button class="dropdown-menu__item" data-action="rag">Documents (RAG)</button>
     <div class="dropdown-menu__sep"></div>
     <button class="dropdown-menu__item" data-action="clear-chat">Clear Chat</button>
     <div class="dropdown-menu__sep"></div>
@@ -49,6 +50,7 @@
     <button class="pill" data-insert="/remember ">/remember</button>
     <button class="pill" data-insert="/recall">/recall</button>
     <button class="pill" data-insert="/help">/help</button>
+    <button class="pill" id="rag-pill">Ask Docs</button>
   </div>
 
   <!-- Input row -->
@@ -149,6 +151,36 @@
   <div class="modal__footer">
     <button class="btn btn--accent" id="train-start-btn">Start Training</button>
     <button class="btn" data-close-modal>Cancel</button>
+  </div>
+</dialog>
+
+<!-- Documents (RAG) modal -->
+<dialog class="modal" id="rag-modal">
+  <div class="modal__titlebar">
+    <span>Documents (RAG)</span>
+    <button class="win-btn win-btn--close" data-close-modal>&#x2715;</button>
+  </div>
+  <div class="modal__body">
+    <p class="muted" id="rag-deps-status"></p>
+
+    <section class="modal__section">
+      <h3>Index a folder</h3>
+      <div class="modal__row">
+        <input class="field__input" id="rag-folder" type="text" placeholder="Folder path" readonly>
+        <button class="btn btn--pill" id="rag-browse-btn">Browse...</button>
+      </div>
+      <button class="btn btn--accent" id="rag-index-btn">Index Folder</button>
+      <p class="muted" id="rag-index-status"></p>
+    </section>
+
+    <section class="modal__section">
+      <h3>Ask your documents</h3>
+      <input class="field__input" id="rag-question" type="text" placeholder="Ask a question about your indexed files...">
+      <button class="btn btn--accent" id="rag-ask-btn">Ask</button>
+    </section>
+  </div>
+  <div class="modal__footer">
+    <button class="btn" data-close-modal>Close</button>
   </div>
 </dialog>
 

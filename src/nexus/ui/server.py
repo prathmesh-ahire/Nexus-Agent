@@ -312,6 +312,64 @@ def post_train(body: TrainRequest) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# RAG -- "Index this folder" / "Ask your documents" (Phase 45)
+# ---------------------------------------------------------------------------
+class RagIndexRequest(BaseModel):
+    folder: str
+
+
+class RagAskRequest(BaseModel):
+    question: str
+
+
+@app.get("/api/rag/status")
+def get_rag_status() -> dict:
+    from nexus.tools import rag
+
+    deps = dep_checker.check_dependencies()
+    missing = [pip_name for pip_name, _, feature in deps["missing_optional"]
+               if feature == "RAG / document search"]
+    return {
+        "has_index": rag.has_index(),
+        "info": rag.get_index_info(),
+        "deps_missing": missing,
+    }
+
+
+@app.post("/api/rag/index")
+def post_rag_index(body: RagIndexRequest) -> dict:
+    """
+    Build the RAG index in a background thread; the result is pushed to the
+    active WebSocket as a "rag_index_complete" message once it finishes,
+    the same long-running-task pattern as /api/train, since embedding a
+    large folder can take well beyond a normal request timeout.
+    """
+    def worker() -> None:
+        from nexus.tools import rag
+        try:
+            result = rag.build_index(body.folder)
+        except Exception as e:
+            result = f"Indexing error: {e}"
+        if _active_ws is not None and _main_loop is not None:
+            asyncio.run_coroutine_threadsafe(
+                _active_ws.send_json({"type": "rag_index_complete", "reply": result}), _main_loop
+            )
+
+    threading.Thread(target=worker, daemon=True).start()
+    return {"status": "started"}
+
+
+@app.post("/api/rag/ask", response_model=CommandResponse)
+def post_rag_ask(body: RagAskRequest) -> CommandResponse:
+    from nexus.tools import rag
+    try:
+        reply = rag.ask(body.question)
+    except Exception as e:
+        reply = f"Error: {e}"
+    return CommandResponse(reply=reply)
+
+
+# ---------------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------------
 @app.get("/api/deps")

@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 
+from nexus.agent.router import ACTIONS
 from nexus.security import confirm
 
 # ---------------------------------------------------------------------------
@@ -32,57 +33,28 @@ SUPPORTED_COMMANDS = {
 
 # ---------------------------------------------------------------------------
 # Task keyword mapping -- /task subcommands to handler functions
+#
+# Built from router.ACTIONS' task_keywords instead of a second, independently
+# hand-typed dict (V4.0 Phase 38) -- so e.g. BATTERY's /task phrases and its
+# ACTION:BATTERY name can't drift apart the way they could when each lived in
+# its own file. "disk cleanup"/"set wallpaper" have no natural-language or
+# LLM-routed equivalent (they're /task-only), so they're added on top rather
+# than belonging in the shared registry.
 # ---------------------------------------------------------------------------
 _TASK_KEYWORDS = {
-    # System info
-    "battery": "battery",
-    "charge": "battery",
-    "charging": "battery",
-    "power": "battery",
-    "processes": "processes",
-    "process": "processes",
-    "tasks": "processes",
-    "running": "processes",
-    "running programs": "processes",
-    "running apps": "processes",
-    "task manager": "processes",
-    # System commands
-    "shutdown": "shutdown",
-    "shut down": "shutdown",
-    "turn off": "shutdown",
-    "power off": "shutdown",
-    "restart": "restart",
-    "reboot": "restart",
-    "sleep": "sleep",
-    "hibernate": "sleep",
-    "standby": "sleep",
-    "cancel shutdown": "cancel_shutdown",
-    "cancel restart": "cancel_shutdown",
-    # File management
-    "rename": "rename",
-    "copy": "copy",
-    "move": "move",
-    "delete": "delete",
-    "remove": "delete",
-    "list": "list_files",
-    "list files": "list_files",
-    "show files": "list_files",
-    "dir": "list_files",
-    # System utilities
-    "disk cleanup": "disk_cleanup",
-    "clean disk": "disk_cleanup",
-    "cleanup": "disk_cleanup",
-    "wallpaper": "set_wallpaper",
-    "set wallpaper": "set_wallpaper",
-    "desktop wallpaper": "set_wallpaper",
-    "background": "set_wallpaper",
-    # Model management
-    "reset training": "reset_training",
-    "reset model": "reset_training",
-    "clear training": "reset_training",
-    "model info": "model_info",
-    "model status": "model_info",
+    keyword: name
+    for name, meta in ACTIONS.items()
+    for keyword in meta.get("task_keywords", ())
 }
+_TASK_KEYWORDS.update({
+    "disk cleanup": "DISK_CLEANUP",
+    "clean disk": "DISK_CLEANUP",
+    "cleanup": "DISK_CLEANUP",
+    "wallpaper": "SET_WALLPAPER",
+    "set wallpaper": "SET_WALLPAPER",
+    "desktop wallpaper": "SET_WALLPAPER",
+    "background": "SET_WALLPAPER",
+})
 
 
 # ---------------------------------------------------------------------------
@@ -217,31 +189,31 @@ def handle_task(args):
                 "Type /help for full list.")
 
     # Route to the correct handler
-    if matched_task == "battery":
+    if matched_task == "BATTERY":
         from nexus.tools import system
         return system.get_battery()
 
-    if matched_task == "processes":
+    if matched_task == "PROCESSES":
         from nexus.tools import system
         return system.get_processes()
 
-    if matched_task == "shutdown":
+    if matched_task == "SHUTDOWN":
         from nexus.tools import system
         return system.shutdown_system()
 
-    if matched_task == "restart":
+    if matched_task == "RESTART":
         from nexus.tools import system
         return system.restart_system()
 
-    if matched_task == "sleep":
+    if matched_task == "SLEEP":
         from nexus.tools import system
         return system.sleep_system()
 
-    if matched_task == "cancel_shutdown":
+    if matched_task == "CANCEL_SHUTDOWN":
         from nexus.tools import system
         return system.cancel_shutdown()
 
-    if matched_task == "rename":
+    if matched_task == "RENAME_FILE":
         from nexus.tools import files
         from nexus.utils import extract_filepath
         filepath = extract_filepath(remaining)
@@ -252,7 +224,7 @@ def handle_task(args):
             return f"Please specify the new name. Example: /task rename {filepath} to new_name.txt"
         return files.rename_file(filepath, new_name)
 
-    if matched_task == "copy":
+    if matched_task == "COPY_FILE":
         from nexus.tools import files
         from nexus.utils import extract_filepath
         filepath = extract_filepath(remaining)
@@ -263,7 +235,7 @@ def handle_task(args):
             return f"Please specify the destination. Example: /task copy {filepath} to D:\\backup"
         return files.copy_file(filepath, dest)
 
-    if matched_task == "move":
+    if matched_task == "MOVE_FILE":
         from nexus.tools import files
         from nexus.utils import extract_filepath
         filepath = extract_filepath(remaining)
@@ -274,7 +246,7 @@ def handle_task(args):
             return f"Please specify the destination. Example: /task move {filepath} to D:\\docs"
         return files.move_file(filepath, dest)
 
-    if matched_task == "delete":
+    if matched_task == "DELETE_FILE":
         from nexus.tools import files
         from nexus.utils import extract_filepath
         filepath = extract_filepath(remaining)
@@ -282,7 +254,7 @@ def handle_task(args):
             return "Please specify a file to delete. Example: /task delete old_notes.txt"
         return files.delete_file(filepath)
 
-    if matched_task == "list_files":
+    if matched_task == "LIST_FILES":
         from nexus.tools import files
         from nexus.utils import extract_filepath
         # Remove "files" or "in" from args before extracting path
@@ -294,21 +266,21 @@ def handle_task(args):
             return "Please specify a folder to list. Example: /task list files in C:\\docs"
         return files.list_files(filepath)
 
-    if matched_task == "disk_cleanup":
+    if matched_task == "DISK_CLEANUP":
         return _run_disk_cleanup(remaining)
 
-    if matched_task == "set_wallpaper":
+    if matched_task == "SET_WALLPAPER":
         from nexus.utils import extract_filepath
         filepath = extract_filepath(remaining)
         if not filepath:
             return "Please specify an image file. Example: /task set wallpaper C:\\pics\\bg.jpg"
         return _set_wallpaper(filepath)
 
-    if matched_task == "reset_training":
+    if matched_task == "RESET_TRAINING":
         from nexus.llm import loader
         return loader.reset_training()
 
-    if matched_task == "model_info":
+    if matched_task == "MODEL_INFO":
         from nexus.llm import loader
         return loader.get_model_info()
 

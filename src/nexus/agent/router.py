@@ -441,41 +441,54 @@ ACTION:REINDEX|<folderpath>
 
 
 # ---------------------------------------------------------------------------
-# Known action keywords (for validation) -- single source of truth for the
-# action namespace. INTENT_SYSTEM_PROMPT's hand-written examples above list
-# the same names for the LLM's benefit, but validation and the detect_intent()
-# regex below are both derived from this one set instead of being
-# hand-typed a second and third time (V4.0 Phase 38).
+# Action registry -- single source of truth for the action namespace
+# (V4.0 Phase 38). Before this, the same ~23 action names were hand-typed
+# independently in three places: fast_route()'s returned "ACTION:X" string
+# literals, commands.py's own lowercase _TASK_KEYWORDS values, and this
+# module's _VALID_ACTIONS set -- which is exactly the kind of three-way
+# drift that caused the routing-confusion bugs in docs/feedback.txt.
+#
+# fast_route()'s per-action keyword/pattern constants above keep their own
+# natural-language matching logic (Phase 26's false-positive gating) rather
+# than being folded in here, since that gating genuinely doesn't apply to
+# /task -- an explicit command has no ambiguity to guard against. What *is*
+# shared is the name each action goes by, and the extra keyword phrases
+# commands.py's /task recognises for it; both now come from here instead of
+# a second, independently hand-typed dict.
 # ---------------------------------------------------------------------------
-_VALID_ACTIONS = {
-    "ACTION:SUMMARISE_FILE",
-    "ACTION:SUMMARISE_FOLDER",
-    "ACTION:QA",
-    "ACTION:BATTERY",
-    "ACTION:PROCESSES",
-    "ACTION:RESET_TRAINING",
-    "ACTION:MODEL_INFO",
-    "ACTION:SHUTDOWN",
-    "ACTION:RESTART",
-    "ACTION:SLEEP",
-    "ACTION:CANCEL_SHUTDOWN",
-    "ACTION:RENAME_FILE",
-    "ACTION:COPY_FILE",
-    "ACTION:MOVE_FILE",
-    "ACTION:DELETE_FILE",
-    "ACTION:LIST_FILES",
-    "ACTION:CLEAR_HISTORY",
-    "ACTION:RAG_QA",
-    "ACTION:REINDEX",
-    "ACTION:REMEMBER",
-    "ACTION:RECALL",
-    "ACTION:FORGET",
-    "ACTION:UNKNOWN",
+ACTIONS = {
+    "SUMMARISE_FILE": {},
+    "SUMMARISE_FOLDER": {},
+    "QA": {},
+    "BATTERY": {"task_keywords": ("battery", "charge", "charging", "power")},
+    "PROCESSES": {"task_keywords": ("processes", "process", "tasks", "running",
+                                     "running programs", "running apps", "task manager")},
+    "RESET_TRAINING": {"task_keywords": ("reset training", "reset model", "clear training")},
+    "MODEL_INFO": {"task_keywords": ("model info", "model status")},
+    "SHUTDOWN": {"task_keywords": ("shutdown", "shut down", "turn off", "power off")},
+    "RESTART": {"task_keywords": ("restart", "reboot")},
+    "SLEEP": {"task_keywords": ("sleep", "hibernate", "standby")},
+    "CANCEL_SHUTDOWN": {"task_keywords": ("cancel shutdown", "cancel restart")},
+    "RENAME_FILE": {"task_keywords": ("rename",)},
+    "COPY_FILE": {"task_keywords": ("copy",)},
+    "MOVE_FILE": {"task_keywords": ("move",)},
+    "DELETE_FILE": {"task_keywords": ("delete", "remove")},
+    "LIST_FILES": {"task_keywords": ("list", "list files", "show files", "dir")},
+    "CLEAR_HISTORY": {},
+    "RAG_QA": {},
+    "REINDEX": {},
+    "REMEMBER": {},
+    "RECALL": {},
+    "FORGET": {},
+    "UNKNOWN": {},
 }
 
-# Regex alternation of bare action names (no "ACTION:" prefix), derived from
-# _VALID_ACTIONS above rather than hand-typed a second time.
-_ACTION_NAME_PATTERN = "|".join(sorted(a.split(":", 1)[1] for a in _VALID_ACTIONS))
+# Derived from ACTIONS above instead of being hand-typed a second time.
+_VALID_ACTIONS = {f"ACTION:{name}" for name in ACTIONS}
+
+# Regex alternation of bare action names (no "ACTION:" prefix), likewise
+# derived rather than hand-typed a third time.
+_ACTION_NAME_PATTERN = "|".join(sorted(ACTIONS))
 
 
 # ---------------------------------------------------------------------------
@@ -483,8 +496,12 @@ _ACTION_NAME_PATTERN = "|".join(sorted(a.split(":", 1)[1] for a in _VALID_ACTION
 # ---------------------------------------------------------------------------
 def detect_intent(user_input):
     """
-    Use the AI model to classify the user's input into an (action, params) tuple.
-    Tries fast keyword-based routing first; falls back to LLM if no match.
+    Classify the user's input into an (action, params) tuple.
+
+    fast_route()'s keyword table (built from the ACTIONS registry above) is
+    the primary classifier; the LLM is an explicit last-resort fallback for
+    whatever fast_route() doesn't recognise -- not a second path that runs
+    in parallel and might disagree with it (V4.0 Phase 38).
 
     Args:
         user_input: Raw string from the user.

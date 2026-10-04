@@ -134,3 +134,32 @@ def test_general_question_falls_through_or_is_qa():
 
 def test_greeting_is_qa():
     assert action_of("hello") == "ACTION:QA"
+
+
+# ---------------------------------------------------------------------------
+# Single source of truth (V4.0 Phase 38) -- commands.py's /task keyword
+# table is built from this module's ACTIONS registry instead of a second,
+# independently hand-typed dict. These guard against that invariant
+# silently breaking as actions are added or renamed.
+# ---------------------------------------------------------------------------
+def test_task_keywords_only_reference_known_actions():
+    from nexus.agent import commands
+    from nexus.agent.router import ACTIONS
+
+    task_only_extras = {"DISK_CLEANUP", "SET_WALLPAPER"}  # no NL/LLM equivalent
+    for keyword, action_name in commands._TASK_KEYWORDS.items():
+        assert action_name in ACTIONS or action_name in task_only_extras, (
+            f"/task keyword {keyword!r} maps to {action_name!r}, which is "
+            "neither in router.ACTIONS nor a known /task-only extra"
+        )
+
+
+def test_natural_language_and_task_command_agree_on_action_name():
+    from nexus.agent import commands
+
+    for text, task_keyword in [
+        ("what is my battery", "battery"),
+        ("show running processes", "processes"),
+        ("cancel shutdown", "cancel shutdown"),
+    ]:
+        assert action_of(text) == f"ACTION:{commands._TASK_KEYWORDS[task_keyword]}"

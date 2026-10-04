@@ -27,8 +27,6 @@ RAG_INDEX_DIR: Path = PROJECT_ROOT / "rag-index"
 
 SETTINGS_FILE: Path = CONFIG_DIR / "settings.json"
 PERMISSIONS_FILE: Path = CONFIG_DIR / "permissions.json"
-API_KEYS_FILE: Path = CONFIG_DIR / "api_keys.json"
-API_KEYS_TEMPLATE: Path = CONFIG_DIR / "api_keys.template.json"
 MEMORY_FILE: Path = CONFIG_DIR / "user_memory.json"
 QUEUE_FILE: Path = PROJECT_ROOT / "tasks_queue.json"
 

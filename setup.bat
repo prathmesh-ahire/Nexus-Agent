@@ -22,7 +22,7 @@ venv\Scripts\python.exe -m pip install --upgrade pip -q
 
 echo [3/3] Installing NEXUS and dependencies...
 echo       (llama-cpp-python uses a prebuilt CPU wheel - no compiler needed)
-venv\Scripts\python.exe -m pip install -e ".[web,hotkey,dev]" ^
+venv\Scripts\python.exe -m pip install -e ".[hotkey,dev]" ^
     --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 
 echo.

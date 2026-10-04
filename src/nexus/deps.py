@@ -30,12 +30,7 @@ REQUIRED_PACKAGES = [
 # Optional packages: missing ones disable specific features but NEXUS still runs.
 # Format: (import_name, pip_name, description, feature_it_enables)
 OPTIONAL_PACKAGES = [
-    ("selenium",              "selenium",            "Browser automation",        "Browser commands"),
-    ("yfinance",              "yfinance",            "Stock market data",         "Stock prices"),
-    ("requests",              "requests",            "HTTP requests",             "Web page fetching"),
-    ("bs4",                   "beautifulsoup4",      "HTML parsing",             "Web page fetching"),
     ("pynput",                "pynput",              "Global hotkeys",            "Ctrl+Alt+N hotkey"),
-    ("google.genai",          "google-genai",        "Gemini API client",         "Web search via Gemini"),
 ]
 
 
@@ -80,7 +75,7 @@ def _can_import(module_name):
     Check if a module can be imported without side effects.
 
     Args:
-        module_name: Dotted module name, e.g. 'google.genai'.
+        module_name: Dotted module name, e.g. 'sentence_transformers'.
 
     Returns:
         True if the module is importable, False otherwise.

@@ -1,6 +1,6 @@
 """
 commands.py -- NEXUS Slash Command System
-Detects and routes slash commands (/task, /web, /save, /remember, /open, /help)
+Detects and routes slash commands (/task, /save, /remember, /help, etc.)
 directly to handler functions, bypassing LLM intent detection entirely.
 This makes NEXUS faster and more predictable for known commands.
 
@@ -18,10 +18,8 @@ from nexus.security import confirm
 # ---------------------------------------------------------------------------
 SUPPORTED_COMMANDS = {
     "/task": "Execute a system task (battery, processes, shutdown, file ops, etc.)",
-    "/web": "Search the web using Gemini API (Phase 29)",
     "/save": "Save data to a file",
     "/remember": "Store a fact in persistent memory (Phase 28)",
-    "/open": "Open a website or URL in the browser",
     "/help": "Show all available slash commands and examples",
     "/recall": "List stored memories (Phase 28)",
     "/forget": "Remove a stored memory (Phase 28)",
@@ -29,111 +27,6 @@ SUPPORTED_COMMANDS = {
     "/settings": "Open settings or show current configuration (Phase 34)",
     "/theme": "Switch theme (Dark / Light / Blue) (Phase 34)",
     "/clear": "Clear conversation history (Phase 34)",
-}
-
-
-# ---------------------------------------------------------------------------
-# Smart URL mapping -- keywords to popular websites
-# ---------------------------------------------------------------------------
-_URL_MAP = {
-    # Shopping
-    "amazon": "https://www.amazon.in",
-    "flipkart": "https://www.flipkart.com",
-    "myntra": "https://www.myntra.com",
-    "meesho": "https://www.meesho.com",
-    # Entertainment
-    "youtube": "https://www.youtube.com",
-    "netflix": "https://www.netflix.com",
-    "hotstar": "https://www.hotstar.com",
-    "disney": "https://www.hotstar.com",
-    "spotify": "https://www.spotify.com",
-    "prime video": "https://www.primevideo.com",
-    "prime": "https://www.primevideo.com",
-    # Social
-    "instagram": "https://www.instagram.com",
-    "twitter": "https://twitter.com",
-    "x": "https://twitter.com",
-    "facebook": "https://www.facebook.com",
-    "linkedin": "https://www.linkedin.com",
-    "reddit": "https://www.reddit.com",
-    "whatsapp": "https://web.whatsapp.com",
-    "telegram": "https://web.telegram.org",
-    # Productivity / Mail
-    "gmail": "https://mail.google.com",
-    "google mail": "https://mail.google.com",
-    "email": "https://mail.google.com",
-    "mail": "https://mail.google.com",
-    "outlook": "https://outlook.live.com",
-    "google drive": "https://drive.google.com",
-    "drive": "https://drive.google.com",
-    "google docs": "https://docs.google.com",
-    "google sheets": "https://sheets.google.com",
-    "notion": "https://www.notion.so",
-    # Dev
-    "github": "https://github.com",
-    "stackoverflow": "https://stackoverflow.com",
-    "stack overflow": "https://stackoverflow.com",
-    "chatgpt": "https://chat.openai.com",
-    "gemini": "https://gemini.google.com",
-    # Reference / Knowledge
-    "google": "https://www.google.com",
-    "wikipedia": "https://www.wikipedia.org",
-    "wiki": "https://www.wikipedia.org",
-    # Movies / Ratings
-    "imdb": "https://www.imdb.com",
-    "rotten tomatoes": "https://www.rottentomatoes.com",
-    # Booking
-    "bookmyshow": "https://www.bookmyshow.com",
-    "book my show": "https://www.bookmyshow.com",
-    "makemytrip": "https://www.makemytrip.com",
-    "make my trip": "https://www.makemytrip.com",
-    "irctc": "https://www.irctc.co.in",
-    "zomato": "https://www.zomato.com",
-    "swiggy": "https://www.swiggy.com",
-    # News
-    "news": "https://news.google.com",
-    "google news": "https://news.google.com",
-    # Maps
-    "maps": "https://maps.google.com",
-    "google maps": "https://maps.google.com",
-}
-
-# Fuzzy keyword mapping -- descriptive phrases to site names
-_FUZZY_MAP = {
-    "shopping": "amazon",
-    "online shopping": "amazon",
-    "buy": "amazon",
-    "movie ticket": "bookmyshow",
-    "movie tickets": "bookmyshow",
-    "ticket booking": "bookmyshow",
-    "movie ticket booking": "bookmyshow",
-    "book tickets": "bookmyshow",
-    "rate movies": "imdb",
-    "movie ratings": "imdb",
-    "movie reviews": "imdb",
-    "food delivery": "zomato",
-    "order food": "zomato",
-    "train tickets": "irctc",
-    "train booking": "irctc",
-    "book train": "irctc",
-    "flight booking": "makemytrip",
-    "book flight": "makemytrip",
-    "hotel booking": "makemytrip",
-    "book hotel": "makemytrip",
-    "travel booking": "makemytrip",
-    "music": "spotify",
-    "listen to music": "spotify",
-    "play music": "spotify",
-    "watch videos": "youtube",
-    "video": "youtube",
-    "videos": "youtube",
-    "coding help": "stackoverflow",
-    "programming help": "stackoverflow",
-    "search": "google",
-    "web search": "google",
-    "directions": "maps",
-    "navigate": "maps",
-    "navigation": "maps",
 }
 
 
@@ -231,7 +124,7 @@ def parse_command(user_input):
 def parse_multi_commands(user_input):
     """
     Split input containing multiple slash commands into separate commands.
-    Handles: "/web get stock prices and /save to stocks.txt"
+    Handles: "/task battery and /save to log.txt"
 
     Args:
         user_input: Raw string possibly containing multiple slash commands.
@@ -423,51 +316,6 @@ def handle_task(args):
 
 
 # ---------------------------------------------------------------------------
-# /web handler -- Web search via Gemini API (Phase 29)
-# ---------------------------------------------------------------------------
-def handle_web(query):
-    """
-    Handle /web commands -- search the web using Gemini API.
-
-    Args:
-        query: The search query text.
-
-    Returns:
-        Result string with answer and sources.
-    """
-    if not query:
-        return ("No search query provided. Try:\n"
-                "  /web highest grossing movie in the world\n"
-                "  /web current weather in Mumbai\n"
-                "  /web price of top 10 Nifty 50 stocks")
-
-    # Try Gemini API first (Phase 29)
-    try:
-        from nexus.tools import search
-    except ImportError:
-        return ("Web search module not available.\n"
-                "Set up your API key in Settings > API Key,\n"
-                "or install google-genai: pip install google-genai")
-
-    result = search.search_web_gemini(query)
-
-    # If Gemini returned an error about missing package or key,
-    # try Selenium fallback
-    if result and ("not installed" in result or "not configured" in result):
-        try:
-            from nexus.tools import browser
-            return browser.search_web(query)
-        except ImportError:
-            return ("Selenium is not installed.\n"
-                    "Install with: pip install selenium\n"
-                    "Or set up your Gemini API key in Settings > API Key.")
-        except Exception:
-            pass  # Fall through to return the Gemini error message
-
-    return result
-
-
-# ---------------------------------------------------------------------------
 # /save handler
 # ---------------------------------------------------------------------------
 def handle_save(args):
@@ -486,8 +334,7 @@ def handle_save(args):
                 "  /save to notes.txt\n"
                 "  /save data to C:\\docs\\output.txt")
 
-    from nexus.security.permissions import is_allowed
-    from nexus.tools import browser
+    from nexus.tools import files
 
     # Try to extract filename from args
     filepath = None
@@ -515,115 +362,7 @@ def handle_save(args):
     if not data:
         data = "[No data provided -- use /save <data> to <filename>]"
 
-    filepath = os.path.abspath(filepath)
-
-    if not is_allowed(filepath):
-        return (f"Permission denied: Cannot save to {filepath}\n"
-                "This location is not in your allowed folders.")
-
-    return browser.save_to_txt(data, filepath, format_type="text")
-
-
-# ---------------------------------------------------------------------------
-# /open handler
-# ---------------------------------------------------------------------------
-def handle_open(args):
-    """
-    Handle /open commands -- open a URL or mapped website.
-
-    Args:
-        args: Website name, keyword, or direct URL.
-              e.g. "amazon", "movie tickets", "google.com"
-
-    Returns:
-        Result string.
-    """
-    if not args:
-        return ("No website specified. Try:\n"
-                "  /open amazon\n"
-                "  /open youtube\n"
-                "  /open google.com\n"
-                "  /open movie ticket booking")
-
-    lower = args.lower().strip()
-
-    # 1. Check direct URL (contains http:// or https:// or has domain pattern)
-    if re.match(r"https?://", lower) or re.search(r"\w+\.\w{2,}", lower):
-        try:
-            from nexus.tools import browser
-            return browser.open_browser(args.strip())
-        except ImportError:
-            return ("Selenium is not installed.\n"
-                    "Install with: pip install selenium\n"
-                    "Or use Settings > Install Missing Packages.")
-        except Exception as e:
-            return f"Could not open URL: {e}"
-
-    # 2. Check exact match in URL map
-    if lower in _URL_MAP:
-        try:
-            from nexus.tools import browser
-            url = _URL_MAP[lower]
-            return browser.open_browser(url)
-        except ImportError:
-            return ("Selenium is not installed.\n"
-                    "Install with: pip install selenium\n"
-                    "Or use Settings > Install Missing Packages.")
-        except Exception as e:
-            return f"Could not open {lower}: {e}"
-
-    # 3. Check fuzzy keyword map
-    if lower in _FUZZY_MAP:
-        site_key = _FUZZY_MAP[lower]
-        if site_key in _URL_MAP:
-            try:
-                from nexus.tools import browser
-                url = _URL_MAP[site_key]
-                return browser.open_browser(url)
-            except ImportError:
-                return ("Selenium is not installed.\n"
-                        "Install with: pip install selenium\n"
-                        "Or use Settings > Install Missing Packages.")
-            except Exception as e:
-                return f"Could not open {site_key}: {e}"
-
-    # 4. Partial match in URL map (e.g. "book my" -> "bookmyshow")
-    for key, url in _URL_MAP.items():
-        if lower in key or key in lower:
-            try:
-                from nexus.tools import browser
-                return browser.open_browser(url)
-            except ImportError:
-                return ("Selenium is not installed.\n"
-                        "Install with: pip install selenium\n"
-                        "Or use Settings > Install Missing Packages.")
-            except Exception as e:
-                return f"Could not open {key}: {e}"
-
-    # 5. Partial match in fuzzy map
-    for phrase, site_key in _FUZZY_MAP.items():
-        if (lower in phrase or phrase in lower) and site_key in _URL_MAP:
-            try:
-                from nexus.tools import browser
-                return browser.open_browser(_URL_MAP[site_key])
-            except ImportError:
-                return ("Selenium is not installed.\n"
-                        "Install with: pip install selenium\n"
-                        "Or use Settings > Install Missing Packages.")
-            except Exception as e:
-                return f"Could not open {site_key}: {e}"
-
-    # 6. Fallback -- try adding .com
-    guess_url = f"https://www.{lower.replace(' ', '')}.com"
-    try:
-        from nexus.tools import browser
-        return browser.open_browser(guess_url)
-    except ImportError:
-        return ("Selenium is not installed.\n"
-                "Install with: pip install selenium\n"
-                "Or use Settings > Install Missing Packages.")
-    except Exception:
-        return f"Could not open \"{args}\". Try providing a full URL like: /open https://example.com"
+    return files.save_text(data, filepath)
 
 
 # ---------------------------------------------------------------------------
@@ -831,24 +570,10 @@ def handle_help():
       /task disk cleanup          -> Run Windows disk cleanup
       /task set wallpaper bg.jpg  -> Set desktop wallpaper
 
-  /web <query>       - Search the web (via Gemini API)
-    Examples:
-      /web highest grossing movie in the world
-      /web current weather in Mumbai
-      /web price of Nifty 50 stocks
-
   /save <data> to <filename>  - Save data to a file
     Examples:
       /save to notes.txt
       /save my notes to output.txt
-
-  /open <website>    - Open a website in the browser
-    Examples:
-      /open amazon               -> Opens Amazon.in
-      /open youtube              -> Opens YouTube
-      /open movie ticket booking -> Opens BookMyShow
-      /open google.com           -> Opens Google
-      /open https://github.com   -> Opens any URL
 
   /remember <fact>   - Store a fact for long-term memory
     Examples:
@@ -879,7 +604,7 @@ def handle_help():
 
 ------------------------------------------------------
 Tip: You can also use multiple commands in one line:
-  /web get stock prices and /save to stocks.txt
+  /task battery and /save to log.txt
 ------------------------------------------------------
 Without a slash prefix, NEXUS uses AI to understand
 your intent automatically.
@@ -903,12 +628,8 @@ def execute_command(command, args):
     """
     if command == "/task":
         return handle_task(args)
-    if command == "/web":
-        return handle_web(args)
     if command == "/save":
         return handle_save(args)
-    if command == "/open":
-        return handle_open(args)
     if command == "/remember":
         return handle_remember(args)
     if command == "/recall":
@@ -955,7 +676,7 @@ def execute_input(user_input):
         results = []
         prev_result = None
         for cmd, cmd_args in multi:
-            # If /save comes after /web or /task, pass the previous result
+            # If /save comes after another command, pass the previous result
             if cmd == "/save" and prev_result and not cmd_args:
                 cmd_args = "to output.txt"  # Default filename
             result = execute_command(cmd, cmd_args)

@@ -24,7 +24,7 @@ def test_project_root_contains_the_package():
     "path_name",
     [
         "CONFIG_DIR", "MODEL_DIR", "DATASETS_DIR", "LORA_WEIGHTS_DIR",
-        "RAG_INDEX_DIR", "SETTINGS_FILE", "PERMISSIONS_FILE", "API_KEYS_FILE",
+        "RAG_INDEX_DIR", "SETTINGS_FILE", "PERMISSIONS_FILE",
         "MEMORY_FILE", "QUEUE_FILE",
     ],
 )
@@ -38,7 +38,7 @@ def test_all_modules_agree_on_the_root():
     from nexus.agent import memory
     from nexus.llm import loader
     from nexus.security import permissions
-    from nexus.tools import search, system
+    from nexus.tools import system
 
     root = str(config.PROJECT_ROOT)
     for value in (
@@ -47,7 +47,6 @@ def test_all_modules_agree_on_the_root():
         memory.MEMORY_FILE,
         permissions.CONFIG_PATH,
         system.QUEUE_FILE,
-        search.API_KEYS_FILE,
     ):
         assert str(value).startswith(root), f"{value} escaped the project root"
 

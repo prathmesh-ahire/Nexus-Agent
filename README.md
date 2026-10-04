@@ -20,10 +20,9 @@ Press `Ctrl+Alt+N` anywhere in Windows and NEXUS appears. Ask it to summarise a 
 | **System** | Battery, running processes, shutdown/restart/sleep |
 | **Search** | Semantic search across your own documents (RAG) |
 | **Memory** | Remembers facts about you between sessions |
-| **Web** *(optional)* | Web search via Gemini, stock prices, open sites |
 | **Training** *(optional)* | LoRA fine-tuning on your own Q&A data |
 
-Runs on a laptop with **no GPU** and 8 GB of RAM.
+Fully offline — no internet access required for any feature. Runs on a laptop with **no GPU** and 8 GB of RAM.
 
 ---
 
@@ -57,15 +56,13 @@ src/nexus/
 ├── config.py          Single source of truth for paths and settings
 ├── agent/
 │   ├── router.py      Intent classification and dispatch
-│   ├── commands.py    Slash commands (/task, /web, /remember, …)
+│   ├── commands.py    Slash commands (/task, /remember, …)
 │   └── memory.py      Session context + persistent long-term memory
 ├── llm/
 │   └── loader.py      GGUF model loading, LoRA resolution, inference
 ├── tools/
-│   ├── files.py       Read, summarise, rename, copy, move, delete
+│   ├── files.py       Read, summarise, rename, copy, move, delete, save
 │   ├── system.py      Battery, processes, power, task queue
-│   ├── search.py      Gemini web search + API key management
-│   ├── browser.py     Browser automation, scraping, stock prices
 │   └── rag.py         Document indexing and vector search
 ├── security/
 │   ├── permissions.py Folder allowlist for file access
@@ -97,7 +94,7 @@ rename notes.txt to old.txt              remember my birthday is 15 March
 what do my files say about X?            what do you remember about me
 ```
 
-**Slash commands:** `/task` `/web` `/open` `/remember` `/recall` `/forget` `/save` `/help`
+**Slash commands:** `/task` `/remember` `/recall` `/forget` `/save` `/model` `/settings` `/theme` `/clear` `/help`
 
 ---
 
@@ -109,7 +106,7 @@ pytest                    # run the test suite
 ruff check src tests      # lint
 ```
 
-Optional feature groups: `.[web]`, `.[rag]`, `.[training]`, `.[hotkey]`, `.[all]`.
+Optional feature groups: `.[rag]`, `.[training]`, `.[hotkey]`, `.[all]`.
 
 ---
 
@@ -119,7 +116,6 @@ Optional feature groups: `.[web]`, `.[rag]`, `.[training]`, `.[hotkey]`, `.[all]
 |---|---|
 | `config/settings.json` | Model path, `max_tokens`, `n_ctx`, threads, theme |
 | `config/permissions.json` | Folders NEXUS may read and write |
-| `config/api_keys.json` | Gemini API key (git-ignored) |
 
 Each has a `.template.json` alongside it. All are editable from **Settings** in the three-dot menu.
 

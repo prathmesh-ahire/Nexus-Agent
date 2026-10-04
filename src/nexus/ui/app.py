@@ -598,47 +598,6 @@ class QuickOpenApp:
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
         win.bind("<Destroy>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
-        # ========= SECTION: API Key =========
-        self._settings_section(content, t, "Gemini API Key")
-
-        api_frame = tk.Frame(content, bg=t["bg_dark"])
-        api_frame.pack(fill=tk.X, padx=12, pady=(0, 8))
-
-        # Load current key
-        current_key = ""
-        try:
-            from nexus.tools import search
-            k = search.load_api_key("gemini_api_key")
-            if k:
-                current_key = k
-        except ImportError:
-            pass
-
-        api_entry = tk.Entry(api_frame, font=FONT_INPUT, bg=t["bg_medium"],
-                             fg=t["fg_text"], insertbackground=t["fg_text"],
-                             relief=tk.FLAT, show="*")
-        api_entry.pack(fill=tk.X, ipady=6, padx=2, pady=2)
-        if current_key:
-            api_entry.insert(0, current_key)
-        else:
-            api_entry.insert(0, "")
-            api_entry.config(fg=t["fg_dim"])
-
-        # Show/hide toggle
-        api_visible = [False]
-        def toggle_key_vis():
-            api_visible[0] = not api_visible[0]
-            api_entry.config(show="" if api_visible[0] else "*")
-            vis_btn.config(text="Hide" if api_visible[0] else "Show")
-
-        vis_btn = tk.Button(api_frame, text="Show", font=FONT_PILL,
-                            bg=t["pill_bg"], fg=t["fg_text"], relief=tk.FLAT,
-                            cursor="hand2", command=toggle_key_vis)
-        vis_btn.pack(anchor="e", pady=2)
-
-        tk.Label(api_frame, text="Get a free key: https://aistudio.google.com/apikey",
-                 font=FONT_STATUS, bg=t["bg_dark"], fg=t["fg_dim"]).pack(anchor="w")
-
         # ========= SECTION: Model Config =========
         self._settings_section(content, t, "Model Configuration")
 
@@ -763,15 +722,6 @@ class QuickOpenApp:
 
         def save_all():
             errors = []
-
-            # Save API key
-            key_val = api_entry.get().strip()
-            if key_val:
-                try:
-                    from nexus.tools import search
-                    search.save_api_key("gemini_api_key", key_val)
-                except ImportError as e:
-                    errors.append(f"API key not saved: {e}")
 
             # Save model config
             for field, ent in model_entries.items():

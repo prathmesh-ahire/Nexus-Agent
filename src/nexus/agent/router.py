@@ -70,19 +70,6 @@ _RAG_QA_KEYWORDS = {"ask about my files", "ask about my documents", "search my f
                      "from my files", "from my documents", "in my files", "in my documents",
                      "according to my files", "based on my files", "what do my files say"}
 
-# Phase 23 — Browser automation keywords
-_OPEN_URL_KEYWORDS = {"open ", "go to ", "visit ", "browse ", "navigate to "}
-_SEARCH_WEB_KEYWORDS = {"search for ", "search the web", "web search", "google ", "bing ",
-                         "look up ", "search online"}
-_URL_PATTERN_WORDS = {"http://", "https://", ".com", ".org", ".net", ".io", ".in", ".co"}
-
-# Phase 24 — Web data fetch keywords
-_STOCK_KEYWORDS = {"stock", "share", "price", "stock price", "share price",
-                    "market price", "stock market"}
-_STOCK_CONTEXT = {"price", "prices", "stock", "stocks", "share", "shares", "market"}
-_FETCH_WEB_KEYWORDS = {"fetch", "scrape", "download", "get data from", "extract from"}
-_SAVE_KEYWORDS = {"save", "save to", "write to", "export to", "store in"}
-
 # Phase 26 — Expanded substring patterns for natural-language matching
 _BATTERY_PATTERNS = [
     "battery percentage", "battery status", "battery level", "battery left",
@@ -162,11 +149,9 @@ def fast_route(user_input):
       3. Battery / Processes / Shutdown / Restart / Sleep  (weak matches gated)
       4. File management (rename, copy, move, delete, list)
       5. RAG (reindex, ask about documents)
-      6. Stock prices / Web fetch
-      7. Open URL / Search web
-      8. Summarise file/folder
-      9. Greetings
-      10. Questions (catch-all — LAST priority)
+      6. Summarise file/folder
+      7. Greetings
+      8. Questions (catch-all — LAST priority)
 
     Returns:
         (action, params) tuple if a match is found, or None if the
@@ -288,29 +273,7 @@ def fast_route(user_input):
     if any(kw in lower for kw in _RAG_QA_KEYWORDS):
         return ("ACTION:RAG_QA", user_input)
 
-    # --- 6. Stock prices ---
-    # Require an explicit market word, not just "price"/"market" on its own --
-    # "the price of freedom" is not a ticker.
-    if words & {"stock", "stocks", "share", "shares"} and not informational:
-        if any(kw in lower for kw in _SAVE_KEYWORDS):
-            return ("ACTION:FETCH_AND_SAVE", user_input)
-        return ("ACTION:FETCH_STOCK", user_input)
-
-    # --- 6. Fetch web page data ---
-    if any(kw in lower for kw in _FETCH_WEB_KEYWORDS) and any(pat in lower for pat in _URL_PATTERN_WORDS):
-        if any(kw in lower for kw in _SAVE_KEYWORDS):
-            return ("ACTION:FETCH_AND_SAVE", user_input)
-        return ("ACTION:FETCH_WEB", user_input)
-
-    # --- 7. Open URL / Browse ---
-    if any(lower.startswith(kw) for kw in _OPEN_URL_KEYWORDS):
-        return ("ACTION:OPEN_URL", user_input)
-
-    # --- 7. Web search ---
-    if any(kw in lower for kw in _SEARCH_WEB_KEYWORDS):
-        return ("ACTION:SEARCH_WEB", user_input)
-
-    # --- 8. Summarise file or folder ---
+    # --- 6. Summarise file or folder ---
     if words & _SUMMARISE_KEYWORDS:
         if any(kw in lower for kw in _FOLDER_KEYWORDS):
             filepath = extract_filepath(user_input)
@@ -320,11 +283,11 @@ def fast_route(user_input):
             return ("ACTION:SUMMARISE_FILE", filepath)
         return None
 
-    # --- 9. Greetings ---
+    # --- 7. Greetings ---
     if lower in _GREETING_KEYWORDS or any(lower.startswith(g) for g in _GREETING_KEYWORDS):
         return ("ACTION:QA", user_input)
 
-    # --- 10. Questions (LAST priority — catch-all for question-phrased inputs) ---
+    # --- 8. Questions (LAST priority — catch-all for question-phrased inputs) ---
     # This is intentionally LAST so action keywords like battery/processes
     # are matched first even when phrased as questions.
     if any(lower.startswith(q) for q in _QUESTION_STARTERS) or lower.endswith("?"):
@@ -474,42 +437,15 @@ ACTION:REINDEX|<folderpath>
     User: "index files in C:\\docs"              → ACTION:REINDEX|C:\\docs
     User: "rebuild the search index"            → ACTION:REINDEX
 
-ACTION:OPEN_URL|<url>
-  Use when the user wants to open a website or URL in the browser.
-  Examples:
-    User: "open google.com"                     → ACTION:OPEN_URL|https://google.com
-    User: "go to github.com"                    → ACTION:OPEN_URL|https://github.com
-    User: "visit https://python.org"            → ACTION:OPEN_URL|https://python.org
-
-ACTION:SEARCH_WEB|<query>
-  Use when the user wants to search the web for something.
-  Examples:
-    User: "search for python tutorials"         → ACTION:SEARCH_WEB|python tutorials
-    User: "look up machine learning courses"    → ACTION:SEARCH_WEB|machine learning courses
-
-ACTION:FETCH_STOCK|<symbols>
-  Use when the user wants to get stock prices or market data.
-  Examples:
-    User: "get stock price of reliance"         → ACTION:FETCH_STOCK|reliance
-    User: "price of TCS and Infosys"            → ACTION:FETCH_STOCK|TCS,Infosys
-    User: "show me AAPL stock"                  → ACTION:FETCH_STOCK|AAPL
-
-ACTION:FETCH_WEB|<url>
-  Use when the user wants to fetch/scrape text content from a web page.
-  Examples:
-    User: "fetch data from https://example.com" → ACTION:FETCH_WEB|https://example.com
-    User: "scrape text from python.org"         → ACTION:FETCH_WEB|https://python.org
-
-ACTION:FETCH_AND_SAVE|<params>
-  Use when the user wants to fetch data AND save it to a file.
-  Examples:
-    User: "get prices of TCS and save to stocks.txt" → ACTION:FETCH_AND_SAVE|TCS|stocks.txt
-    User: "fetch data from example.com and save"     → ACTION:FETCH_AND_SAVE|https://example.com
 """
 
 
 # ---------------------------------------------------------------------------
-# Known action keywords (for validation)
+# Known action keywords (for validation) -- single source of truth for the
+# action namespace. INTENT_SYSTEM_PROMPT's hand-written examples above list
+# the same names for the LLM's benefit, but validation and the detect_intent()
+# regex below are both derived from this one set instead of being
+# hand-typed a second and third time (V4.0 Phase 38).
 # ---------------------------------------------------------------------------
 _VALID_ACTIONS = {
     "ACTION:SUMMARISE_FILE",
@@ -531,16 +467,15 @@ _VALID_ACTIONS = {
     "ACTION:CLEAR_HISTORY",
     "ACTION:RAG_QA",
     "ACTION:REINDEX",
-    "ACTION:OPEN_URL",
-    "ACTION:SEARCH_WEB",
-    "ACTION:FETCH_STOCK",
-    "ACTION:FETCH_WEB",
-    "ACTION:FETCH_AND_SAVE",
     "ACTION:REMEMBER",
     "ACTION:RECALL",
     "ACTION:FORGET",
     "ACTION:UNKNOWN",
 }
+
+# Regex alternation of bare action names (no "ACTION:" prefix), derived from
+# _VALID_ACTIONS above rather than hand-typed a second time.
+_ACTION_NAME_PATTERN = "|".join(sorted(a.split(":", 1)[1] for a in _VALID_ACTIONS))
 
 
 # ---------------------------------------------------------------------------
@@ -582,7 +517,7 @@ def detect_intent(user_input):
     # Try to extract the ACTION from the response
     # The model might output extra text; find the ACTION:XXX pattern
     action_match = re.search(
-        r"(ACTION:(?:SUMMARISE_FILE|SUMMARISE_FOLDER|QA|BATTERY|PROCESSES|RESET_TRAINING|MODEL_INFO|SHUTDOWN|RESTART|SLEEP|CANCEL_SHUTDOWN|RENAME_FILE|COPY_FILE|MOVE_FILE|DELETE_FILE|LIST_FILES|CLEAR_HISTORY|RAG_QA|REINDEX|OPEN_URL|SEARCH_WEB|FETCH_STOCK|FETCH_WEB|FETCH_AND_SAVE|REMEMBER|RECALL|FORGET|UNKNOWN))",
+        rf"(ACTION:(?:{_ACTION_NAME_PATTERN}))",
         first_line,
         re.IGNORECASE,
     )
@@ -811,103 +746,8 @@ def route(user_input):
                 return "Please specify which folder to index, e.g. \"reindex files in C:\\Documents\""
         return rag.build_index(params)
 
-    if action == "ACTION:OPEN_URL":
-        url = _extract_url(user_input) or params
-        if not url:
-            return "Please specify which URL to open (e.g. \"open google.com\")."
-        try:
-            from nexus.tools import browser
-            return browser.open_browser(url)
-        except ImportError:
-            return ("Selenium is not installed.\n"
-                    "Install with: pip install selenium\n"
-                    "Or use Settings > Install Missing Packages.")
-
-    elif action == "ACTION:SEARCH_WEB":
-        query = _extract_search_query(user_input) or params
-        if not query:
-            return "Please specify what to search for (e.g. \"search for python tutorials\")."
-        # Try Gemini API first (Phase 29)
-        try:
-            from nexus.tools import search
-            result = search.search_web_gemini(query)
-            # If Gemini returned a real answer (not an error), use it
-            if result and "not installed" not in result and "not configured" not in result:
-                return result
-        except Exception:
-            pass
-        # Fallback: try Selenium browser search
-        try:
-            from nexus.tools import browser
-            return browser.search_web(query)
-        except Exception:
-            pass
-        # Both failed
-        try:
-            from nexus.tools import search
-            return search.get_setup_instructions() + "\n\nOr use Settings > API Key in the Quick Menu."
-        except ImportError:
-            return ("Web search is not available.\n"
-                    "Set up your API key in Settings > API Key,\n"
-                    "or install selenium for browser-based search.")
-
-    elif action == "ACTION:FETCH_STOCK":
-        try:
-            from nexus.tools import browser
-        except ImportError:
-            return ("yfinance is not installed.\n"
-                    "Install with: pip install yfinance\n"
-                    "Or use Settings > Install Missing Packages.")
-        symbols = _extract_stock_symbols(user_input)
-        if not symbols:
-            return "Please specify which stocks to look up (e.g. \"price of Reliance\")."
-        results = browser.fetch_stock_prices(symbols)
-        return browser.format_stock_results(results)
-
-    elif action == "ACTION:FETCH_WEB":
-        try:
-            from nexus.tools import browser
-        except ImportError:
-            return ("Web fetch module not available.\n"
-                    "Install with: pip install requests beautifulsoup4\n"
-                    "Or use Settings > Install Missing Packages.")
-        url = _extract_url(user_input) or params
-        if not url:
-            return "Please specify a URL to fetch (e.g. \"fetch data from example.com\")."
-        return browser.fetch_webpage_text(url)
-
-    elif action == "ACTION:FETCH_AND_SAVE":
-        try:
-            from nexus.tools import browser
-        except ImportError:
-            return ("Web fetch module not available.\n"
-                    "Install with: pip install requests beautifulsoup4 yfinance\n"
-                    "Or use Settings > Install Missing Packages.")
-        # Determine if this is stock data or web page fetch
-        url = _extract_url(user_input)
-        symbols = _extract_stock_symbols(user_input)
-        save_path = _extract_save_path(user_input)
-
-        if symbols:
-            # Stock fetch + save
-            results = browser.fetch_stock_prices(symbols)
-            display = browser.format_stock_results(results)
-            if save_path:
-                save_msg = browser.save_to_txt(results, save_path, format_type="table")
-                return f"{display}\n{save_msg}"
-            return f"{display}\nTip: Add \"save to filename.txt\" to save the data."
-        if url:
-            # Web page fetch + save
-            text = browser.fetch_webpage_text(url)
-            if save_path:
-                save_msg = browser.save_to_txt(text, save_path, format_type="text")
-                return f"{text}\n\n{save_msg}"
-            return f"{text}\nTip: Add \"save to filename.txt\" to save the data."
-        return "Please specify what to fetch and where to save."
-
-    else:
-        # ACTION:UNKNOWN or anything unrecognised
-        return "I did not understand that. Please try rephrasing."
+    # ACTION:UNKNOWN or anything unrecognised
+    return "I did not understand that. Please try rephrasing."
 
 
 # ---------------------------------------------------------------------------
@@ -937,76 +777,4 @@ def _extract_destination(text):
     return None
 
 
-def _extract_url(text):
-    """Try to extract a URL from text like 'open google.com' or 'fetch https://...'."""
-    # First try to find an explicit URL
-    url_match = re.search(r'(https?://[^\s]+)', text)
-    if url_match:
-        return url_match.group(1).rstrip('.,;:"\'')
-
-    # Try to find a domain-like pattern (e.g. "google.com", "python.org")
-    domain_match = re.search(r'([a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?)', text)
-    if domain_match:
-        return domain_match.group(1).rstrip('.,;:"\'')
-
-    return None
-
-
-def _extract_search_query(text):
-    """Extract the search query from text like 'search for python tutorials'."""
-    lower = text.lower()
-    for prefix in ("search for ", "search the web for ", "web search ",
-                    "look up ", "google ", "bing ", "search online for ",
-                    "search "):
-        if lower.startswith(prefix):
-            return text[len(prefix):].strip()
-        idx = lower.find(prefix)
-        if idx >= 0:
-            return text[idx + len(prefix):].strip()
-    return text.strip()
-
-
-def _extract_stock_symbols(text):
-    """
-    Extract stock names/symbols from user text.
-    Handles: 'price of Reliance and TCS', 'stock price TCS, Infosys',
-             'get prices of AAPL, MSFT and save to file'
-    """
-    lower = text.lower()
-
-    # Remove common action words to isolate stock names
-    for remove in ("get", "fetch", "show", "price", "prices", "stock", "stocks",
-                    "share", "shares", "market", "of", "me", "the", "my",
-                    "current", "latest", "today", "save", "and save",
-                    "write", "export", "to", "in"):
-        lower = lower.replace(remove + " ", " ")
-
-    # Remove "save to <filename>" part
-    save_match = re.search(r'\bsave\s+to\s+[\w./\\]+', lower)
-    if save_match:
-        lower = lower[:save_match.start()] + lower[save_match.end():]
-
-    # Split by commas, 'and', or whitespace and filter
-    parts = re.split(r'[,]+|\band\b', lower)
-    symbols = []
-    for part in parts:
-        part = part.strip().strip('"').strip("'")
-        if part and len(part) >= 2 and not part.startswith("save"):
-            symbols.append(part)
-
-    return symbols if symbols else None
-
-
-def _extract_save_path(text):
-    """Extract save filepath from text like '... save to stocks.txt'."""
-    lower = text.lower()
-    for kw in ("save to ", "write to ", "export to ", "store in "):
-        idx = lower.find(kw)
-        if idx >= 0:
-            rest = text[idx + len(kw):].strip().strip('"').strip("'")
-            # Take the first path-like token
-            parts = rest.split()
-            if parts:
-                return parts[0]
-    return None
 

@@ -7,6 +7,7 @@ through permissions.is_allowed() for security.
 
 import os
 import shutil
+from datetime import datetime
 
 import openpyxl
 import pdfplumber
@@ -427,6 +428,34 @@ def delete_file(filepath):
         return f"File deleted: {filename}"
     except Exception as e:
         return f"Error deleting file: {e}"
+
+
+def save_text(data, filepath):
+    """
+    Save plain text to a file, used by the /save command. Appends with a
+    timestamped separator if the file already exists, otherwise creates it.
+    Checks permissions before writing.
+    """
+    filepath = os.path.abspath(filepath)
+
+    if not is_allowed(filepath):
+        return (f"Permission denied: Cannot save to {filepath}\n"
+                "This location is not in your allowed folders.")
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    content = f"Saved on: {now}\n{'-' * 60}\n{data}"
+
+    try:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if os.path.isfile(filepath):
+            with open(filepath, "a", encoding="utf-8") as f:
+                f.write("\n" + "=" * 60 + "\n" + content + "\n")
+            return f"Data appended to: {filepath}"
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content + "\n")
+        return f"Data saved to: {filepath}"
+    except OSError as e:
+        return f"Error saving file: {e}"
 
 
 def list_files(folderpath):

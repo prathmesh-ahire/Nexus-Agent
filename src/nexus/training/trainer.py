@@ -496,13 +496,11 @@ def run_training(model, tokenizer, train_dataset, val_dataset, quick_mode=False)
     # Ensure output directory exists
     os.makedirs(LORA_OUTPUT_FOLDER, exist_ok=True)
 
-    # Quick mode uses aggressive settings for fastest possible training
-    if quick_mode:
-        epochs = 1
-        lr = 5e-4
-    else:
-        epochs = 1
-        lr = 2e-4
+    # Both modes train for 1 epoch (reduced from 3 long ago for CPU speed --
+    # see the v1.0.1 patch notes). --quick only raises the learning rate for
+    # a faster, lower-quality convergence; it does not change epoch count.
+    epochs = 1
+    lr = 5e-4 if quick_mode else 2e-4
 
     training_args = TrainingArguments(
         output_dir=LORA_OUTPUT_FOLDER,
@@ -565,7 +563,7 @@ def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="NEXUS Training Pipeline")
     parser.add_argument("--quick", action="store_true",
-                        help="Quick training mode (1 epoch, higher learning rate)")
+                        help="Quick training mode (higher learning rate, faster but lower quality)")
     args = parser.parse_args()
 
     print("=" * 60)

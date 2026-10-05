@@ -160,7 +160,26 @@ def test_memory_endpoint_returns_a_list(tmp_path, monkeypatch):
 # messages, which deadlocked the moment a destructive action needed
 # confirmation. These pin that fix down.
 # ---------------------------------------------------------------------------
-def test_ws_streams_a_non_llm_command_to_completion():
+def test_ws_streams_a_non_llm_command_to_completion(monkeypatch):
+    """
+    Fakes the battery reading instead of trusting the test runner's real
+    hardware -- GitHub's Windows runners are VMs with no battery, so
+    psutil.sensors_battery() returns None there and get_battery() correctly
+    replies "No battery detected...", which a hardcoded "Battery" assertion
+    doesn't survive (this is what actually failed CI, not flakiness). Mocking
+    makes the assertion deterministic on any machine and exercises the
+    has-battery branch of get_battery(), which a battery-less CI runner can
+    never reach on its own.
+    """
+    from collections import namedtuple
+
+    from nexus.tools import system
+
+    fake_battery = namedtuple("sbattery", ["percent", "power_plugged", "secsleft"])(
+        55, True, system.psutil.POWER_TIME_UNLIMITED
+    )
+    monkeypatch.setattr(system.psutil, "sensors_battery", lambda: fake_battery)
+
     with client.websocket_connect("/api/ws") as ws:
         ws.send_json({"type": "command", "text": "what is my battery"})
         chunks = []
@@ -169,7 +188,7 @@ def test_ws_streams_a_non_llm_command_to_completion():
             if msg["type"] == "done":
                 break
             chunks.append(msg["text"])
-        assert "Battery" in "".join(chunks)
+        assert "Battery: 55% | Status: Charging" in "".join(chunks)
 
 
 def test_ws_confirm_approved_runs_the_destructive_action(tmp_path, monkeypatch):
